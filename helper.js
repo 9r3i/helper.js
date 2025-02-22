@@ -1,3 +1,34 @@
+/* initializing sample */
+;async function helper_start(){
+  let app=new Helper;
+  if(!app.production){
+    /* error message -- for development only */
+    window.addEventListener('error',function(e){
+      let errorText=[
+        e.message,
+        'URL: '+e.filename,
+        'Line: '+e.lineno+', Column: '+e.colno,
+        'Stack: '+(e.error&&e.error.stack||'(no stack trace)'),
+      ].join('\n');
+      alert(errorText);
+      console.error(errorText);
+    });
+  }
+  /* check for cordova */
+  let appDirect=app.production?false:true;
+  window.CORDOVA_LOADED=false;
+  if(window.cordova!==undefined){
+    document.addEventListener('deviceready',async function(e){
+      window.CORDOVA_LOADED=true;
+      await app.start(appDirect);
+    },false);
+  }else{
+    await app.start(appDirect);
+  }
+};
+
+
+
 /**
  * helper.js
  * ~ for any js jelper
@@ -5,8 +36,6 @@
  * autored by 9r3i (https://github.com/9r3i)
  * started at February 22nd 2025
  */
-
-
 ;function Helper(){
 /* set to true before compile to appbase */
 this.production=false;
@@ -360,7 +389,7 @@ this.init=function(){
   /* load sweetalert */
   this.loadScriptURL(this.hosts.sweetalert);
   /* put the object to global scope */
-  window._Hotel=this;
+  window._Helper=this;
   /* return the object */
   return this;
 };
@@ -402,7 +431,7 @@ this.start=async function(app){
     let link=document.createElement('link');
     link.type='text/css';
     link.rel='stylesheet';
-    link.href='css/hotel'+(this.production?'.min':'')+'.css';
+    link.href='css/helper'+(this.production?'.min':'')+'.css';
     document.head.append(link);
   }
   /* check userdata */
@@ -422,7 +451,7 @@ this.start=async function(app){
   /* login page */
   if(!this.isLogin()){
     window.hotelPage=function(){
-      _Hotel.start(true);
+      _Helper.start(true);
     };
     this.statusBar('#7c1111');
     let main=app?this.loginPage():this.mainPage();
@@ -448,27 +477,27 @@ this.start=async function(app){
     if(this.dataset.open=='1'){return;}
     this.dataset.open='1';
     this.style.width='200px';
-    if(_Hotel.user.scope.length<3){
-      await _Hotel.sleep(500);
+    if(_Helper.user.scope.length<3){
+      await _Helper.sleep(500);
       this.style.width=this.dataset.width;
       this.dataset.open='0';
       return;
     }
-    let divisions=_Hotel.divisions,
-    scope=_Hotel.parseJSON(this.dataset.scope),
+    let divisions=_Helper.divisions,
+    scope=_Helper.parseJSON(this.dataset.scope),
     apps={};
     for(let i of scope){
       if(i=='account'){continue;}
       apps[i]=divisions[i];
     }
-    let sel=_Hotel.select('app',this.dataset.app,apps,e=>{
-      _Hotel.start(sel.value);
+    let sel=_Helper.select('app',this.dataset.app,apps,e=>{
+      _Helper.start(sel.value);
     });
     this.innerHTML='';
     this.append(sel);
     sel.focus();
     sel.onblur=async e=>{
-      await _Hotel.sleep(500);
+      await _Helper.sleep(500);
       this.style.width=this.dataset.width;
       this.dataset.open='0';
       this.innerText=this.dataset.text;
@@ -517,12 +546,12 @@ this.start=async function(app){
   /* account menus */
   if(this.user.scope.indexOf('account')>=0){
     this.main.addMenu('Profile','user',function(){
-      _Hotel.menuHide();
-      _Hotel.accountPage();
+      _Helper.menuHide();
+      _Helper.accountPage();
     });
     this.main.addMenu('Logout','power-off',function(){
-      _Hotel.menuHide();
-      _Hotel.logout();
+      _Helper.menuHide();
+      _Helper.logout();
     },'#d33');
   }
   /* menu ui fix */
@@ -587,12 +616,12 @@ this.roomStatus=async function(codes=[]){
       };
     }
     floors[room.floor].total++;
-    let scode=_Hotel.getValueByKey('room_id',room.id,'code',status),
-    stime=_Hotel.getValueByKey('room_id',room.id,'update',status),
-    sname=_Hotel.getValueByKey('code',scode,'name',this.roomStatusInfo),
-    sdetail=_Hotel.getValueByKey('code',scode,'detail',this.roomStatusInfo),
+    let scode=_Helper.getValueByKey('room_id',room.id,'code',status),
+    stime=_Helper.getValueByKey('room_id',room.id,'update',status),
+    sname=_Helper.getValueByKey('code',scode,'name',this.roomStatusInfo),
+    sdetail=_Helper.getValueByKey('code',scode,'detail',this.roomStatusInfo),
     select=codes.indexOf(parseInt(scode))>=0
-      ?_Hotel.roomStatusSelector({
+      ?_Helper.roomStatusSelector({
         id:id,
         code:scode,
         name:sname,
@@ -600,22 +629,22 @@ this.roomStatus=async function(codes=[]){
         room,
         table,
       })
-      :_Hotel.element('div').text(sname),
-    span=_Hotel.element('span',{
+      :_Helper.element('div').text(sname),
+    span=_Helper.element('span',{
       'class':'front-room-span',
     },[
       select,
-      _Hotel.element('span').text(sdetail),
-      _Hotel.element('div').text(
-        _Hotel.parseDatetime(parseInt(stime)*1000)
+      _Helper.element('span').text(sdetail),
+      _Helper.element('div').text(
+        _Helper.parseDatetime(parseInt(stime)*1000)
       ),
     ]),
-    nroom=_Hotel.element('div',{
+    nroom=_Helper.element('div',{
       'class':'front-room-status front-room-status-'+scode,
       title:'',
       id:id+'-'+room.id,
     },[
-      _Hotel.element('div',{
+      _Helper.element('div',{
         'class':'front-room-inner',
       }).html(
         room.number+' &middot; '+room.code
@@ -632,7 +661,7 @@ this.roomStatus=async function(codes=[]){
   for(let floor in floors){
     let fr=floors[floor];
     table.head('FLOOR #'+floor+' ('+fr.total+' rooms)',1);
-    table.row(_Hotel.element('div',{},fr.rooms));
+    table.row(_Helper.element('div',{},fr.rooms));
   }
   /* set class and interval */
   table.classList.add('table-full');
@@ -643,7 +672,7 @@ this.roomStatus=async function(codes=[]){
   table.interval=async function(sec=5){
     clearTimeout(this.timer);
     let _this=this,
-    status=await _Hotel.request('query','select * from room_status'),
+    status=await _Helper.request('query','select * from room_status'),
     el=document.getElementById(this.id);
     if(!el){return this;}
     for(let st of status){
@@ -654,9 +683,9 @@ this.roomStatus=async function(codes=[]){
       nroom.dataset.status_code=st.code+'';
       let scode=st.code,
       stime=st.update,
-      sname=_Hotel.getValueByKey('code',scode,'name',_Hotel.roomStatusInfo),
-      sdetail=_Hotel.getValueByKey('code',scode,'detail',_Hotel.roomStatusInfo),
-      room=_Hotel.getDataById(st.room_id,_Hotel.rooms),
+      sname=_Helper.getValueByKey('code',scode,'name',_Helper.roomStatusInfo),
+      sdetail=_Helper.getValueByKey('code',scode,'detail',_Helper.roomStatusInfo),
+      room=_Helper.getDataById(st.room_id,_Helper.rooms),
       sndiv=nroom.childNodes[0],
       select=nroom.childNodes[1].childNodes[0],
       span=nroom.childNodes[1].childNodes[1],
@@ -664,7 +693,7 @@ this.roomStatus=async function(codes=[]){
       nroom.setAttribute('class','front-room-status front-room-status-'+scode);
       sndiv.innerHTML=nroom.dataset.room_number+' &middot; '+nroom.dataset.room_code+'<br />'+sname;
       span.innerText=sdetail;
-      spant.innerText=_Hotel.parseDatetime(stime*1000);
+      spant.innerText=_Helper.parseDatetime(stime*1000);
       if(this.codes.indexOf(parseInt(scode))>=0){
         if(select.tagName.toLowerCase()=='select'){
           select.dataset.value=scode;
@@ -672,7 +701,7 @@ this.roomStatus=async function(codes=[]){
           select.value=scode;
         }else{
           nroom.childNodes[1].removeChild(select);
-          select=_Hotel.roomStatusSelector({
+          select=_Helper.roomStatusSelector({
             id:this.id,
             code:scode,
             name:sname,
@@ -686,13 +715,13 @@ this.roomStatus=async function(codes=[]){
           select.innerText=sname;
         }else{
           nroom.childNodes[1].removeChild(select);
-          select=_Hotel.element('div').text(sname);
+          select=_Helper.element('div').text(sname);
           nroom.childNodes[1].insertBefore(select,span);
         }
       }
     }
     this.timer=setTimeout(function(){
-      if(!_Hotel.user){return;}
+      if(!_Helper.user){return;}
       _this.interval(sec);
     },parseInt(sec,10)*0x3e8);
     return this;
@@ -703,7 +732,7 @@ this.roomStatus=async function(codes=[]){
 /* room status selector -- return: select element */
 this.roomStatusSelector=function(config){
   config=typeof config==='object'&&config!==null?config:{};
-  let select=_Hotel.select('room_status',config.code,config.statusInfo);
+  let select=_Helper.select('room_status',config.code,config.statusInfo);
   select.dataset.value=config.code+'';
   select.dataset.valueText=config.name;
   select.dataset.id=config.id;
@@ -713,12 +742,12 @@ this.roomStatusSelector=function(config){
     clearTimeout(this.table.timer);
     let nroom=this.parentNode.parentNode,
     scode=this.value,
-    sname=_Hotel.getValueByKey('code',scode,'name',_Hotel.roomStatusInfo),
-    sdetail=_Hotel.getValueByKey('code',scode,'detail',_Hotel.roomStatusInfo),
+    sname=_Helper.getValueByKey('code',scode,'name',_Helper.roomStatusInfo),
+    sdetail=_Helper.getValueByKey('code',scode,'detail',_Helper.roomStatusInfo),
     sndiv=nroom.childNodes[0],
     span=this.parentNode.childNodes[1],
     spant=this.parentNode.childNodes[2],
-    yes=await _Hotel.confirmX(
+    yes=await _Helper.confirmX(
       'Change room status?',
       'Room '+this.room.number
         +' from '+this.dataset.valueText
@@ -728,14 +757,14 @@ this.roomStatusSelector=function(config){
       this.value=this.dataset.value;
       return;
     }
-    let innerQuery=_Hotel.buildQuery({
+    let innerQuery=_Helper.buildQuery({
       code:this.value,
       update:Math.ceil((new Date).getTime()/1000),
     }),
     query='update room_status ('+innerQuery+') where room_id='+this.room.id,
-    res=await _Hotel.request('query',query);
+    res=await _Helper.request('query',query);
     if(res!=1){
-      return _Hotel.alert('Error: Failed to update room status!',res,'error');
+      return _Helper.alert('Error: Failed to update room status!',res,'error');
     }
     /* change after success */
     nroom.classList.remove('front-room-status-'+this.dataset.value);
@@ -743,7 +772,7 @@ this.roomStatusSelector=function(config){
     nroom.dataset.status_code=scode+'';
     sndiv.innerHTML=this.room.number+' &middot; '+this.room.code+'<br />'+sname;
     span.innerText=sdetail;
-    spant.innerText=_Hotel.parseDatetime((new Date).getTime());
+    spant.innerText=_Helper.parseDatetime((new Date).getTime());
     this.dataset.value=scode;
     this.dataset.valueText=sname;
     this.parentNode.style.removeProperty('display');
@@ -760,7 +789,7 @@ this.roomStatusSelector=function(config){
 /* dialog view -- helper */
 this.dialogView=function(type=0,regid=0){
   if(type==1){
-    return _Hotel.requestOrderView(regid);
+    return _Helper.requestOrderView(regid);
   }else if(type==2){
     return (new HotelFrontOffice).reservationView(regid);
   }else if(type==3){
@@ -776,7 +805,7 @@ this.dialogView=function(type=0,regid=0){
   }else if(type==8){
     return (new HotelFoodBaverage).paymentView(regid);
   }else if(type==9){
-    return _Hotel.adjustmentView(regid);
+    return _Helper.adjustmentView(regid);
   }
   return false;
 };
@@ -796,8 +825,8 @@ this.menuUIFix=function(){
 };
 /* table: adjustment */
 this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustments',readonly=false,columns=null){
-  _Hotel.main.loader();
-  let defDate=_Hotel.production?(new Date).getDate():'all',
+  _Helper.main.loader();
+  let defDate=_Helper.production?(new Date).getDate():'all',
   defCols=[
     'regid',
     'date',
@@ -823,17 +852,17 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
     'select * from coa',
     'select * from price',
   ].join(';'),
-  data=await _Hotel.request('queries',queries),
+  data=await _Helper.request('queries',queries),
   trans=data[0],
   coa=data[1],
   items=data[2],
-  table=_Hotel.table(),
-  oMonths=_Hotel.arrayToObject(this.months),
+  table=_Helper.table(),
+  oMonths=_Helper.arrayToObject(this.months),
   kdate=Math.floor(year/4)==year?29:28,
   mdates=[31,kdate,31,30,31,30,31,31,30,31,30,31],
-  dates=_Hotel.select('date',date,[
+  dates=_Helper.select('date',date,[
     'all',
-    ..._Hotel.range(1,mdates[month]),
+    ..._Helper.range(1,mdates[month]),
   ],function(){
     this.object.adjustments(
       this.value,
@@ -844,7 +873,7 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
       this.dataset.readonly==1?true:false,
     );
   },{year,month,coa_id,title,readonly:readonly?'1':'0'}),
-  months=_Hotel.select('month',month,oMonths,function(){
+  months=_Helper.select('month',month,oMonths,function(){
     this.object.adjustments(
       this.dataset.date,
       parseInt(this.value),
@@ -854,7 +883,7 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
       this.dataset.readonly==1?true:false,
     );
   },{year,date,coa_id,title,readonly:readonly?'1':'0'}),
-  years=_Hotel.select('year',year,this.getYears(),function(){
+  years=_Helper.select('year',year,this.getYears(),function(){
     this.object.adjustments(
       this.dataset.date,
       parseInt(this.dataset.month),
@@ -864,14 +893,14 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
       this.dataset.readonly==1?true:false,
     );
   },{month,date,coa_id,title,readonly:readonly?'1':'0'}),
-  add=_Hotel.button('Add','green','plus',function(){
+  add=_Helper.button('Add','green','plus',function(){
     this.object.adjustmentEdit(
       0,
       this.dataset.coa_id,
       this.dataset.title,
     );
   },{coa_id,title}),
-  pbutton=_Hotel.button('Print','orange','print',function(){
+  pbutton=_Helper.button('Print','orange','print',function(){
     window.print();
   });
   /* set class object */
@@ -883,9 +912,9 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
   this.coa=coa;
   this.items=items;
   /* put to main */
-  _Hotel.main.put(
+  _Helper.main.put(
     title+' &#8213; '+this.months[month]+' '+year,
-    _Hotel.element('div',{},[
+    _Helper.element('div',{},[
       months,
       years,
       readonly?pbutton:'',
@@ -897,7 +926,7 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
   colKey=[];
   for(let col of columns){
     if(defCols.indexOf(col)>=0){
-      colHeader.push(_Hotel.alias('adjustment_'+col));
+      colHeader.push(_Helper.alias('adjustment_'+col));
       colKey.push(col);
     }
   }
@@ -923,35 +952,35 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
       (parseInt(tran.month,10)+1).toString().padStart(2,'0'),
       tran.date.toString().padStart(2,'0'),
     ].join('-'),
-    coaName=_Hotel.getValueById(tran.coa_id,'name',coa),
-    itemName=_Hotel.getValueById(tran.item_id,'name',items),
-    edit=_Hotel.button('Edit','blue','edit',function(){
+    coaName=_Helper.getValueById(tran.coa_id,'name',coa),
+    itemName=_Helper.getValueById(tran.item_id,'name',items),
+    edit=_Helper.button('Edit','blue','edit',function(){
       this.object.adjustmentEdit(
         this.dataset.regid,
         this.dataset.coa_id,
         this.dataset.title,
       );
     },{regid:tran.regid,coa_id,title}),
-    close=_Hotel.button('Close','red','lock',async function(){
-      let yes=await _Hotel.confirmX('Close this '+this.dataset.title+'?');
+    close=_Helper.button('Close','red','lock',async function(){
+      let yes=await _Helper.confirmX('Close this '+this.dataset.title+'?');
       if(!yes){return;}
-      let loader=_Hotel.loader(), 
+      let loader=_Helper.loader(), 
       queries=[
         'update adjustment (status=1) where regid='+this.dataset.regid,
         'update transaction (status=1) where regid='+this.dataset.regid,
       ].join(';'),
-      res=await _Hotel.request('queries',queries);
+      res=await _Helper.request('queries',queries);
       loader.remove();
       this.buttons.innerHTML='';
       this.buttons.append(this.view);
     },{regid:tran.regid,coa_id,title}),
-    view=_Hotel.button('View','green','search',function(){
+    view=_Helper.button('View','green','search',function(){
       this.object.adjustmentView(this.dataset.regid);
     },{regid:tran.regid,coa_id,title}),
-    transfer=_Hotel.button('Transfer','blue','send',function(){
+    transfer=_Helper.button('Transfer','blue','send',function(){
       this.object.coaTransfer(this.dataset.regid);
     },{regid:tran.regid,coa_id,title}),
-    buttons=_Hotel.element('div',{
+    buttons=_Helper.element('div',{
       'class':'td-buttons'
     },tran.status==1?[view,transfer]:[edit,close]);
     /* set table row value */
@@ -961,9 +990,9 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
       name:tran.name,
       item_id:itemName,
       coa_id:coaName,
-      credit:_Hotel.parseNominal(credit),
-      debt:_Hotel.parseNominal(debt),
-      balance:_Hotel.parseNominal(balance),
+      credit:_Helper.parseNominal(credit),
+      debt:_Helper.parseNominal(debt),
+      balance:_Helper.parseNominal(balance),
       note:tran.note,
     },
     colValue=[];
@@ -1003,9 +1032,9 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
   }
   /* get total key */
   let totaled={
-    credit:_Hotel.parseNominal(totalCredit),
-    debt:_Hotel.parseNominal(totalDebt),
-    balance:_Hotel.parseNominal(totalCredit-totalDebt),
+    credit:_Helper.parseNominal(totalCredit),
+    debt:_Helper.parseNominal(totalDebt),
+    balance:_Helper.parseNominal(totalCredit-totalDebt),
   },
   rtotal=[],
   ctotal=[];
@@ -1030,7 +1059,7 @@ this.adjustments=async function(date='all',month,year,coa_id=0,title='Adjustment
 };
 /* adjustment edit/add */
 this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},nosource=false){
-  _Hotel.main.loader();
+  _Helper.main.loader();
   let asset={
     regid:0,
     year:(new Date).getFullYear(),
@@ -1048,21 +1077,21 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
   data,query,queries,
   coa=this.coa,
   items=this.items,
-  table=_Hotel.table(),
-  del=_Hotel.button('Delete','red','trash',async function(){
-    let yes=await _Hotel.confirmX('Delete this '+this.dataset.title+'?');
+  table=_Helper.table(),
+  del=_Helper.button('Delete','red','trash',async function(){
+    let yes=await _Helper.confirmX('Delete this '+this.dataset.title+'?');
     if(!yes){return;}
-    let loader=_Hotel.loader(), 
+    let loader=_Helper.loader(), 
     queries=[
       'delete from adjustment where regid='+this.dataset.regid,
       'delete from transaction where regid='+this.dataset.regid,
     ].join(';'),
-    res=await _Hotel.request('queries',queries);
+    res=await _Helper.request('queries',queries);
     loader.remove();
     return this.object.adjustments(null,null,null,this.dataset.coa_id,this.dataset.title);
   },{regid,coa_id,title}),
-  save=_Hotel.button('Save','blue','save',async function(){
-    let data=_Hotel.formSerialize(),
+  save=_Helper.button('Save','blue','save',async function(){
+    let data=_Helper.formSerialize(),
     source_id=data.source,
     date=[
       data.year,
@@ -1070,19 +1099,19 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
       data.date.toString().padStart(2,'0'),
     ].join('-');
     if(new Date(date)=='Invalid Date'){
-      return _Hotel.alert('Error: Invalid Date!','','error');
+      return _Helper.alert('Error: Invalid Date!','','error');
     }
     /* new regid */
     delete data.source;
     data.regid=this.dataset.regid;
     if(this.dataset.regid==0){
-      let nrd=await _Hotel.newRegID(9);
+      let nrd=await _Helper.newRegID(9);
       data.regid=nrd.regid;
     }
     /* starting queries */
-    let tInnerQuery=_Hotel.buildQuery({
+    let tInnerQuery=_Helper.buildQuery({
       regid:data.regid,
-      uid:_Hotel.user.id,
+      uid:_Helper.user.id,
       amount:data.amount,
       deposit:data.deposit,
       flow:data.flow,
@@ -1094,25 +1123,25 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
     tQuery=this.dataset.regid==0
       ?'insert into transaction '+tInnerQuery
       :'update transaction ('+tInnerQuery+') where regid='+data.regid,
-    innerQuery=_Hotel.buildQuery(data),
-    loader=_Hotel.loader(),
+    innerQuery=_Helper.buildQuery(data),
+    loader=_Helper.loader(),
     query=this.dataset.regid==0
       ?'insert into adjustment '+innerQuery
       :'update adjustment ('+innerQuery+') where regid='+data.regid,
     queries=[query,tQuery].join(';'),
-    res=await _Hotel.request('queries',queries);
+    res=await _Helper.request('queries',queries);
     /* source */
     if(this.dataset.regid==0&&source_id&&source_id!=0){
-      let nreg=await _Hotel.newRegID(9),
+      let nreg=await _Helper.newRegID(9),
       flow=data.flow;
       data.regid=nreg.regid;
       data.flow=flow==1?0:1;
       data.coa_id=source_id;
-      innerQuery=_Hotel.buildQuery(data);
+      innerQuery=_Helper.buildQuery(data);
       query='insert into adjustment '+innerQuery;
-      tInnerQuery=_Hotel.buildQuery({
+      tInnerQuery=_Helper.buildQuery({
         regid:data.regid,
-        uid:_Hotel.user.id,
+        uid:_Helper.user.id,
         amount:data.amount,
         deposit:data.deposit,
         flow:data.flow,
@@ -1123,16 +1152,16 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
       });
       tQuery='insert into transaction '+tInnerQuery;
       queries=[query,tQuery].join(';');
-      res=await _Hotel.request('queries',queries);
+      res=await _Helper.request('queries',queries);
     }
     /*  */
     /* ending */
     loader.remove();
-    let coaName=_Hotel.getValueById(this.dataset.coa_id,'name',this.object.coa),
+    let coaName=_Helper.getValueById(this.dataset.coa_id,'name',this.object.coa),
     title=coaName||this.dataset.title;
     return this.object.adjustments(null,null,null,this.dataset.coa_id,title);
   },{regid,coa_id,title}),
-  section=_Hotel.element('div',{
+  section=_Helper.element('div',{
     'class':'section row-buttons',
   },[save,regid!=0?del:'',]);
   /* button object */
@@ -1143,7 +1172,7 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
       'select * from coa',
       'select * from price',
     ].join(';');
-    data=await _Hotel.request('queries',queries);
+    data=await _Helper.request('queries',queries);
     coa=data[0];
     items=data[1];
     this.coa=coa;
@@ -1158,18 +1187,18 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
   /* no regid */
   if(regid!=0){
     query='select * from adjustment where regid='+regid;
-    data=await _Hotel.request('query',query);
+    data=await _Helper.request('query',query);
     asset=data.length>0?data[0]:asset;
   }
   /* main put */
   table.classList.add('table-register');
-  _Hotel.main.put(
+  _Helper.main.put(
     (regid==0?'Add':'Edit')+' '+title+' '+(regid!=0?'#'+regid:''),
-    _Hotel.main.double(table,section),
+    _Helper.main.double(table,section),
   );
   /* source */
   if(regid==0&&!nosource){
-    let source=_Hotel.findSelect({
+    let source=_Helper.findSelect({
       key:'source',
       value:0,
       id:'source',
@@ -1186,14 +1215,14 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
   for(let i in def){
     if(passes.indexOf(i)<0){
       passes.push(i);
-      let ihide=_Hotel.input(i,def[i],'hidden');
+      let ihide=_Helper.input(i,def[i],'hidden');
       section.append(ihide);
     }
   }
   /* each */
   for(let key in asset){
     let value=asset[key],
-    val=_Hotel.input(key,value,'text',_Hotel.alias('adjustment_'+key),100);
+    val=_Helper.input(key,value,'text',_Helper.alias('adjustment_'+key),100);
     if(passes.indexOf(key)>=0){
       continue;
     }else if(key=='amount'||key=='deposit'){
@@ -1207,17 +1236,17 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
         };
       }
     }else if(key=='flow'){
-      val=_Hotel.radioActive(key,parseInt(value),['Outcome','Income']);
+      val=_Helper.radioActive(key,parseInt(value),['Outcome','Income']);
     }else if(key=='year'){
-      val=_Hotel.select(key,value,_Hotel.getYears());
+      val=_Helper.select(key,value,_Helper.getYears());
     }else if(key=='date'){
-      val=_Hotel.select(key,value,_Hotel.range(1,31));
+      val=_Helper.select(key,value,_Helper.range(1,31));
     }else if(key=='month'){
-      val=_Hotel.select(key,value,_Hotel.arrayToObject(this.months));
+      val=_Helper.select(key,value,_Helper.arrayToObject(this.months));
     }else if(key=='status'){
-      val=_Hotel.radioActive(key,value,['Open','Close'],true)
+      val=_Helper.radioActive(key,value,['Open','Close'],true)
     }else if(key=='item_id'){
-      val=_Hotel.findSelect({
+      val=_Helper.findSelect({
         key:key,
         value:value,
         id:key,
@@ -1226,47 +1255,47 @@ this.adjustmentEdit=async function(regid=0,coa_id=0,title='Adjustment',def={},no
       });
     }else if(key=='coa_id'){
       val=coa_id==0
-        ?_Hotel.findSelect({
+        ?_Helper.findSelect({
           key:key,
           value:value,
           id:key,
           data:coa,
           placeholder:'Account Name',
         })
-        :_Hotel.element('span',{},[
-          _Hotel.input(key,value,'hidden'),
-          _Hotel.getValueById(coa_id,'name',coa),
+        :_Helper.element('span',{},[
+          _Helper.input(key,value,'hidden'),
+          _Helper.getValueById(coa_id,'name',coa),
         ]);
     }
-    let row=table.row(_Hotel.alias('adjustment_'+key),val);
+    let row=table.row(_Helper.alias('adjustment_'+key),val);
   }
 };
 /* adjustment view */
 this.adjustmentView=async function(regid){
-  let dialog=await _Hotel.dialogPage(),
+  let dialog=await _Helper.dialogPage(),
   queries=[
     'select * from adjustment where regid='+regid,
     'select * from price',
     'select * from coa',
   ].join(';'),
-  data=await _Hotel.request('queries',queries),
+  data=await _Helper.request('queries',queries),
   trans=data[0],
   items=data[1],
   coa=data[2],
-  content=_Hotel.element('div');
+  content=_Helper.element('div');
   if(trans.length<1){
     dialog.put('Error: Failed to get data!');
     return;
   }
   /* each */
   for(let tran of trans){
-    let table=_Hotel.table(),
-    div=_Hotel.element('div',{
+    let table=_Helper.table(),
+    div=_Helper.element('div',{
       'class':'adjustment-view-inline',
     },[table]);
     content.append(div);
     /* header */
-    let coaData=_Hotel.getDataById(tran.coa_id,coa)||{
+    let coaData=_Helper.getDataById(tran.coa_id,coa)||{
       name:'',
       variable:'',
     },
@@ -1279,20 +1308,20 @@ this.adjustmentView=async function(regid){
       if(passes.indexOf(key)>=0){
         continue;
       }else if(key=='date'){
-        val=_Hotel.parseDate(parseInt(tran.time,10)*1000);
+        val=_Helper.parseDate(parseInt(tran.time,10)*1000);
       }else if(key=='coa_id'){
-        val=_Hotel.getValueById(value,'name',coa);
+        val=_Helper.getValueById(value,'name',coa);
       }else if(key=='item_id'){
-        val=_Hotel.getValueById(value,'name',items);
+        val=_Helper.getValueById(value,'name',items);
       }else if(key=='flow'){
-        val=_Hotel.element('span',{
+        val=_Helper.element('span',{
           'class':'balance-'+(value==1?'plus':'minus'),
         }).text(['Outcome','Income'][value]);
       }else if(key=='amount'||key=='deposit'){
-        val=_Hotel.parseNominal(value);
+        val=_Helper.parseNominal(value);
       }
       
-      row=table.row(_Hotel.alias('adjustment_'+key),val);
+      row=table.row(_Helper.alias('adjustment_'+key),val);
     }
   }
   /* put into dialog */
@@ -1300,21 +1329,21 @@ this.adjustmentView=async function(regid){
 };
 /* coa transfer -- table: adjustment */
 this.coaTransfer=async function(regid=0){
-  _Hotel.main.loader('Searching...');
+  _Helper.main.loader('Searching...');
   /* search form */
-  let table=_Hotel.table(),
-  tableX=_Hotel.table(),
-  section=_Hotel.element('div',{
+  let table=_Helper.table(),
+  tableX=_Helper.table(),
+  section=_Helper.element('div',{
     'class':'section row-buttons',
   }),
-  input=_Hotel.input('regid','','number','RegID or Ref No...',10),
-  submit=_Hotel.button('Search','blue','search',()=>{
+  input=_Helper.input('regid','','number','RegID or Ref No...',10),
+  submit=_Helper.button('Search','blue','search',()=>{
     this.coaTransfer(input.value);
   }),
   row=table.row('RegID',input,submit);
-  _Hotel.main.put('COA Transfer '+(regid!=0?'#'+regid:''),_Hotel.element('div',{},[
+  _Helper.main.put('COA Transfer '+(regid!=0?'#'+regid:''),_Helper.element('div',{},[
     table,
-    _Hotel.main.double(tableX,section),
+    _Helper.main.double(tableX,section),
   ]));
   /* regid zero */
   if(regid==0){
@@ -1325,12 +1354,12 @@ this.coaTransfer=async function(regid=0){
     'select * from adjustment where regid='+regid,
     'select * from coa',
   ].join(';'),
-  data=await _Hotel.request('queries',queries),
+  data=await _Helper.request('queries',queries),
   adjustments=data[0],
   coa=data[1];
   /* check data */
   if(adjustments.length==0){
-    return _Hotel.alert('Error: Data is not found!','','error');
+    return _Helper.alert('Error: Data is not found!','','error');
   }
   let adjustment=adjustments[0];
   /* coa parsing */
@@ -1346,23 +1375,23 @@ this.coaTransfer=async function(regid=0){
     'Target COA',
   ).header();
   /* coa form */
-  let coaTarget=_Hotel.findSelect({
+  let coaTarget=_Helper.findSelect({
     id:'coa-target',
     key:'coa_id',
     value:0,
     data:coa,
     placeholder:'Target of COA...',
   }),
-  coaCurrent=_Hotel.select('coa_current',coa_id,coaParsed),
-  coaName=_Hotel.getValueById(coa_id,'name',coa),
-  save=_Hotel.button('Save','blue','save',async function(){
-    let fdata=_Hotel.formSerialize(),
-    loader=_Hotel.loader(),
+  coaCurrent=_Helper.select('coa_current',coa_id,coaParsed),
+  coaName=_Helper.getValueById(coa_id,'name',coa),
+  save=_Helper.button('Save','blue','save',async function(){
+    let fdata=_Helper.formSerialize(),
+    loader=_Helper.loader(),
     coa_id=fdata.coa_id,
     queries=[
       'update adjustment (coa_id='+coa_id+') where regid='+this.dataset.regid,
     ].join(';'),
-    res=await _Hotel.request('queries',queries);
+    res=await _Helper.request('queries',queries);
     loader.remove();
     return this.object.coaTransfer(this.dataset.regid);
   },{
@@ -1380,18 +1409,18 @@ this.coaTransfer=async function(regid=0){
   row.childNodes[0].setAttribute('colspan',2);
   row=tableX.row('Name',adjustment.name);
   row=tableX.row('Note',adjustment.note);
-  row=tableX.row('Amount',_Hotel.parseNominal(adjustment.amount));
+  row=tableX.row('Amount',_Helper.parseNominal(adjustment.amount));
   row.childNodes[1].classList.add('td-right');
   row=tableX.row('Status',adjustment.status==1?'Close':'Open');
   row=tableX.row('Flow',adjustment.flow==1?'Income':'Outcome');
-  row=tableX.row('Date',_Hotel.parseDate(adjustment.time*1000));
+  row=tableX.row('Date',_Helper.parseDate(adjustment.time*1000));
 };
 /* request order -- table: purchase_order -- transaction_type: 1 */
 this.requestOrders=async function(month,year,division){
   year=year||(new Date).getFullYear();
   month=!isNaN(parseInt(month,10))?month:(new Date).getMonth();
-  division=division||_Hotel.user.profile.division;
-  _Hotel.main.loader();
+  division=division||_Helper.user.profile.division;
+  _Helper.main.loader();
   let kdate=Math.floor(year/4)==year?29:28,
   kmonth=[31,kdate,31,30,31,30,31,31,30,31,30,31],
   dateTime=Math.floor((new Date([
@@ -1412,7 +1441,7 @@ this.requestOrders=async function(month,year,division){
     'select * from item_stock_fb',
     'select * from item_stock',
   ].join(';'),
-  data=await _Hotel.request('queries',queries),
+  data=await _Helper.request('queries',queries),
   orders=data[0],
   items=data[1],
   coa=data[2],
@@ -1421,13 +1450,13 @@ this.requestOrders=async function(month,year,division){
   stockHK=data[5],
   stockFB=data[6],
   stockWarehouse=data[7],
-  syear=_Hotel.select('month',month,_Hotel.arrayToObject(this.months),function(){
+  syear=_Helper.select('month',month,_Helper.arrayToObject(this.months),function(){
     this.object.requestOrders(this.value,this.dataset.year);
   },{month,year}),
-  smonth=_Hotel.select('year',year,_Hotel.getYears(),function(){
+  smonth=_Helper.select('year',year,_Helper.getYears(),function(){
     this.object.requestOrders(this.dataset.month,this.value);
   },{month,year}),
-  table=_Hotel.table();
+  table=_Helper.table();
   /* selector object of this */
   syear.object=this;
   smonth.object=this;
@@ -1440,24 +1469,24 @@ this.requestOrders=async function(month,year,division){
     purchasing:stockWarehouse,
   };
   /* put content */
-  _Hotel.main.put('Request Orders &#8213; '+this.months[month]+' '+year,
-    _Hotel.element('div',{},[
+  _Helper.main.put('Request Orders &#8213; '+this.months[month]+' '+year,
+    _Helper.element('div',{},[
       smonth,
       syear,
       table,
     ]),
   );
   /* header */
-  let add=_Hotel.button('Add','green','plus',function(){
+  let add=_Helper.button('Add','green','plus',function(){
     this.object.requestOrderEdit(0,this.dataset.division);
   },{month,year,division}),
   row=table.row(
     'RegID',
     'Date',
-    _Hotel.alias('po_estimate'),
-    _Hotel.alias('po_status'),
-    _Hotel.alias('po_uid'),
-    _Hotel.alias('po_note'),
+    _Helper.alias('po_estimate'),
+    _Helper.alias('po_status'),
+    _Helper.alias('po_uid'),
+    _Helper.alias('po_note'),
     add,
   ).header(),
   statuses=[
@@ -1475,11 +1504,11 @@ this.requestOrders=async function(month,year,division){
       (nd.getMonth()+1).toString().padStart(2,'0'),
       nd.getDate().toString().padStart(2,'0'),
     ].join('-'),
-    edit=_Hotel.button('Edit','blue','edit',function(){
+    edit=_Helper.button('Edit','blue','edit',function(){
       this.object.requestOrderEdit(this.dataset.regid);
     },{regid:order.regid}),
-    approve=_Hotel.button('Approve','red','send',async function(){
-      let yes=await _Hotel.confirmX('Approve this request?');
+    approve=_Helper.button('Approve','red','send',async function(){
+      let yes=await _Helper.confirmX('Approve this request?');
       if(!yes){return;}
       let queries=[
         'update purchase_order (status=1) where regid='+this.dataset.regid,
@@ -1495,20 +1524,20 @@ this.requestOrders=async function(month,year,division){
         food_baverage:'item_stock_fb',
       },
       sdTable=sdTables.hasOwnProperty(order.division)?sdTables[order.division]:'',
-      odata=_Hotel.parseJSON(order.data),
+      odata=_Helper.parseJSON(order.data),
       error=false;
       /* check order division */
       if(divisions.indexOf(order.division)<0){
-        return _Hotel.alert('Error: Request from "'
-          +_Hotel.divisions[order.division]
+        return _Helper.alert('Error: Request from "'
+          +_Helper.divisions[order.division]
           +'" is not allowed!','','error');
       }
       /* check the stock */
       for(let od of odata){
-        let item=_Hotel.getDataById(od.item_id,items),
-        tstock=_Hotel.getDataByKey('item_id',od.item_id,stockWarehouse),
+        let item=_Helper.getDataById(od.item_id,items),
+        tstock=_Helper.getDataByKey('item_id',od.item_id,stockWarehouse),
         wstock=tstock?parseInt(tstock.stock,10):0,
-        dtstock=_Hotel.getDataByKey('item_id',od.item_id,stockDivision),
+        dtstock=_Helper.getDataByKey('item_id',od.item_id,stockDivision),
         dstock=dtstock?parseInt(dtstock.stock,10):0,
         orderDataCount=parseInt(od.count,10);
         if(!tstock||wstock<orderDataCount){
@@ -1524,7 +1553,7 @@ this.requestOrders=async function(month,year,division){
           ?'update '+sdTable+' (stock='
              +(dstock+orderDataCount)
             +') where item_id='+od.item_id
-          :'insert into '+sdTable+' '+_Hotel.buildQuery({
+          :'insert into '+sdTable+' '+_Helper.buildQuery({
             item_id:od.item_id,
             stock:dstock+orderDataCount,
           })
@@ -1532,27 +1561,27 @@ this.requestOrders=async function(month,year,division){
       }
       /* check the error */
       if(error){
-        return _Hotel.alert(error,'','error');
+        return _Helper.alert(error,'','error');
       }
-      let loader=_Hotel.loader(),
-      res=await _Hotel.request('queries',queries.join(';'));
+      let loader=_Helper.loader(),
+      res=await _Helper.request('queries',queries.join(';'));
       loader.remove();
-      return _Hotel.requestOrders();
+      return _Helper.requestOrders();
     },{regid:order.regid,division}),
-    view=_Hotel.button('View','green','search',function(){
+    view=_Helper.button('View','green','search',function(){
       this.object.requestOrderView(this.dataset.regid);
     },{regid:order.regid}),
-    user=_Hotel.getDataById(order.uid,users),
-    employee=_Hotel.getDataById(user.profile_id,employees),
-    operator=user.name+' ('+_Hotel.divisions[employee.division]+')',
+    user=_Helper.getDataById(order.uid,users),
+    employee=_Helper.getDataById(user.profile_id,employees),
+    operator=user.name+' ('+_Helper.divisions[employee.division]+')',
     row=table.row(
       order.regid,
       date,
-      _Hotel.parseNominal(order.estimate),
+      _Helper.parseNominal(order.estimate),
       statuses.hasOwnProperty(order.status)?statuses[order.status]:order.status,
       operator,
       order.note,
-      _Hotel.element('div',{
+      _Helper.element('div',{
         'class':'td-buttons',
       },[
         view,
@@ -1570,13 +1599,13 @@ this.requestOrders=async function(month,year,division){
   }
 };
 this.requestOrderEdit=async function(regid,division){
-  _Hotel.main.loader();
+  _Helper.main.loader();
   regid=regid||0;
-  division=division||_Hotel.user.profile.division;
+  division=division||_Helper.user.profile.division;
   /* default */
   let def={
     regid:regid,
-    uid:_Hotel.user.id,
+    uid:_Helper.user.id,
     estimate:0,
     status:0,
     note:'',
@@ -1586,88 +1615,88 @@ this.requestOrderEdit=async function(regid,division){
   nregid=0;
   if(regid!=0){
     let query='select * from purchase_order where regid='+regid,
-    res=await _Hotel.request('query',query);
+    res=await _Helper.request('query',query);
     if(res.length<1){
-      return _Hotel.alert('Error: Data is not found!','','error');
+      return _Helper.alert('Error: Data is not found!','','error');
     }
     def=res[0];
   }else{
-    let nregidData=await _Hotel.newRegID(1);
+    let nregidData=await _Helper.newRegID(1);
     nregid=nregidData.regid;
   }
   /* table and section */
-  let table=_Hotel.table(),
-  save=_Hotel.button('Save','blue','save',async function(){
-    let fdata=_Hotel.formSerialize(true),
-    ndata=_Hotel.objectToArray(_Hotel.parseJSON(fdata.data));
+  let table=_Helper.table(),
+  save=_Helper.button('Save','blue','save',async function(){
+    let fdata=_Helper.formSerialize(true),
+    ndata=_Helper.objectToArray(_Helper.parseJSON(fdata.data));
     fdata.data=JSON.stringify(ndata);
     if(regid==0){
       fdata.regid=this.dataset.nregid;
     }
     /*  */
     /* start connection */
-    let loader=_Hotel.loader(),
-    innerQuery=_Hotel.buildQuery(fdata),
+    let loader=_Helper.loader(),
+    innerQuery=_Helper.buildQuery(fdata),
     query=this.dataset.regid==0
       ?'insert into purchase_order '+innerQuery
       :'update purchase_order ('+innerQuery+') where regid='+this.dataset.regid,
-    res=await _Hotel.request('query',query);
+    res=await _Helper.request('query',query);
     loader.remove();
     this.object.requestOrders();
   },{regid,nregid,division}),
-  section=_Hotel.element('div',{
+  section=_Helper.element('div',{
     'class':'section row-buttons',
   },[save]),
   row,
-  tableData=_Hotel.table(),
+  tableData=_Helper.table(),
   title=(regid==0?'Add':'Edit')+' Request Order '+(regid==0?'':'#'+regid),
-  double=_Hotel.main.double(table,section);
+  double=_Helper.main.double(table,section);
   table.classList.add('table-register');
   save.object=this;
   /* put content */
-  _Hotel.main.put(title,_Hotel.element('div',{},[
+  _Helper.main.put(title,_Helper.element('div',{},[
     tableData,
     double
   ]));
   /* each key -- hidden */
-  section.append(_Hotel.input('uid',def.uid,'hidden'));
-  section.append(_Hotel.input('division',def.division,'hidden'));
-  section.append(_Hotel.input('status',def.status,'hidden'));
+  section.append(_Helper.input('uid',def.uid,'hidden'));
+  section.append(_Helper.input('division',def.division,'hidden'));
+  section.append(_Helper.input('status',def.status,'hidden'));
   /* estimate */
   let estimate={
-    span:_Hotel.element('span').text(_Hotel.parseNominal(def.estimate)),
-    input:_Hotel.input('estimate',def.estimate,'hidden'),
+    span:_Helper.element('span').text(_Helper.parseNominal(def.estimate)),
+    input:_Helper.input('estimate',def.estimate,'hidden'),
   };
   section.append(estimate.input);
-  row=table.row(_Hotel.alias('ro_estimate'),estimate.span);
+  row=table.row(_Helper.alias('ro_estimate'),estimate.span);
   row.childNodes[1].classList.add('tr-right');
   /* status */
-  let statusSpan=_Hotel.element('span').text(def.status==0?'Pending':'Approved');
-  row=table.row(_Hotel.alias('ro_status'),statusSpan);
+  let statusSpan=_Helper.element('span').text(def.status==0?'Pending':'Approved');
+  row=table.row(_Helper.alias('ro_status'),statusSpan);
   /* note */
-  let note=_Hotel.textarea('note',def.note,_Hotel.alias('ro_note'),100);
-  row=table.row(_Hotel.alias('ro_note'),note);
+  let note=_Helper.textarea('note',def.note,_Helper.alias('ro_note'),100);
+  row=table.row(_Helper.alias('ro_note'),note);
   /* table data */
-  let add=_Hotel.button('Add','green','plus',function(){
-    _Hotel.requestOrderEditAddRow(this.table,null,this.estimate);
+  let add=_Helper.button('Add','green','plus',function(){
+    _Helper.requestOrderEditAddRow(this.table,null,this.estimate);
   });
   row=tableData.row(
-    _Hotel.alias('ro_number'),
-    _Hotel.alias('ro_item_id'),
-    _Hotel.alias('ro_price'),
-    _Hotel.alias('ro_count'),
-    _Hotel.alias('ro_unit'),
-    _Hotel.alias('ro_subtotal'),
+    _Helper.alias('ro_number'),
+    _Helper.alias('ro_item_id'),
+    _Helper.alias('ro_price'),
+    _Helper.alias('ro_count'),
+    _Helper.alias('ro_unit'),
+    _Helper.alias('ro_subtotal'),
     add,
   ).header();
   add.table=tableData;
   add.estimate=estimate;
   tableData.dataset.counter='0';
   /* each item data */
-  let itemData=_Hotel.parseJSON(def.data);
+  let itemData=_Helper.parseJSON(def.data);
   itemData=Array.isArray(itemData)?itemData:[];
   for(let item of itemData){
-    _Hotel.requestOrderEditAddRow(tableData,item,estimate);
+    _Helper.requestOrderEditAddRow(tableData,item,estimate);
   }
   /*  */
 };
@@ -1681,29 +1710,29 @@ this.requestOrderEditAddRow=function(table,data,estimate){
   };
   let items=this.items,
   counter=parseInt(table.dataset.counter,10)+1,
-  del=_Hotel.button('Delete','red','trash',function(){
+  del=_Helper.button('Delete','red','trash',function(){
     let tr=document.querySelector('tr[data-counter="'+this.dataset.counter+'"]');
     if(tr){tr.remove();}
   },{counter}),
-  count=_Hotel.input('data['+counter+'][count]',data.count,'number',_Hotel.alias('ro_count'),10),
+  count=_Helper.input('data['+counter+'][count]',data.count,'number',_Helper.alias('ro_count'),10),
   price={
-    span:_Hotel.element('span').text(_Hotel.parseNominal(data.price)),
-    input:_Hotel.input('data['+counter+'][price]',data.price,'hidden',_Hotel.alias('ro_price'),10),
+    span:_Helper.element('span').text(_Helper.parseNominal(data.price)),
+    input:_Helper.input('data['+counter+'][price]',data.price,'hidden',_Helper.alias('ro_price'),10),
   },
   subtotal={
-    span:_Hotel.element('span').text(_Hotel.parseNominal(data.subtotal)),
-    input:_Hotel.input('data['+counter+'][subtotal]',data.subtotal,'hidden',_Hotel.alias('ro_subtotal'),10),
+    span:_Helper.element('span').text(_Helper.parseNominal(data.subtotal)),
+    input:_Helper.input('data['+counter+'][subtotal]',data.subtotal,'hidden',_Helper.alias('ro_subtotal'),10),
   },
   unit={
-    span:_Hotel.element('span').text(data.unit),
-    input:_Hotel.input('data['+counter+'][unit]',data.unit,'hidden',_Hotel.alias('ro_unit'),20),
+    span:_Helper.element('span').text(data.unit),
+    input:_Helper.input('data['+counter+'][unit]',data.unit,'hidden',_Helper.alias('ro_unit'),20),
   },
-  item_id=_Hotel.findSelect({
+  item_id=_Helper.findSelect({
     id:'find-item',
     key:'data['+counter+'][item_id]',
     value:data.item_id,
     data:items,
-    placeholder:_Hotel.alias('ro_item_id'),
+    placeholder:_Helper.alias('ro_item_id'),
     inject:{
       unit,
       price,
@@ -1714,23 +1743,23 @@ this.requestOrderEditAddRow=function(table,data,estimate){
       /* count */
       inject.count.value=0;
       /* price */
-      inject.price.span.innerText=_Hotel.parseNominal(res.data.nominal);
+      inject.price.span.innerText=_Helper.parseNominal(res.data.nominal);
       inject.price.input.value=res.data.nominal;
       /* unit */
       inject.unit.span.innerText=res.data.unit;
       inject.unit.input.value=res.data.unit;
       /* subtotal */
-      inject.subtotal.span.innerText=_Hotel.parseNominal(0);
+      inject.subtotal.span.innerText=_Helper.parseNominal(0);
       inject.subtotal.input.value=0;
     },
   }),
   row=table.row(
     counter,
     item_id,
-    _Hotel.element('div',{},[price.span,price.input]),
+    _Helper.element('div',{},[price.span,price.input]),
     count,
-    _Hotel.element('div',{},[unit.span,unit.input]),
-    _Hotel.element('div',{},[subtotal.span,subtotal.input]),
+    _Helper.element('div',{},[unit.span,unit.input]),
+    _Helper.element('div',{},[subtotal.span,subtotal.input]),
     del,
   );
   row.dataset.counter=counter+'';
@@ -1747,65 +1776,65 @@ this.requestOrderEditAddRow=function(table,data,estimate){
     let value=parseInt(this.value,10),
     price=parseInt(this.price.input.value,10),
     subtotal=value*price;
-    this.subtotal.span.innerText=_Hotel.parseNominal(subtotal);
+    this.subtotal.span.innerText=_Helper.parseNominal(subtotal);
     this.subtotal.input.value=subtotal;
     /* get total estimate */
-    let total=_Hotel.getGrandTotal();
-    this.estimate.span.innerText=_Hotel.parseNominal(total);
+    let total=_Helper.getGrandTotal();
+    this.estimate.span.innerText=_Helper.parseNominal(total);
     this.estimate.input.value=total;
   };
 };
 this.requestOrderView=async function(regid){
-  let dialog=await _Hotel.dialogPage(),
+  let dialog=await _Helper.dialogPage(),
   queries=[
     'select * from purchase_order where regid='+regid,
     'select * from price',
   ].join(';'),
-  data=await _Hotel.request('queries',queries),
+  data=await _Helper.request('queries',queries),
   orders=data[0],
   items=data[1],
-  content=_Hotel.element('div');
+  content=_Helper.element('div');
   if(orders.length<1){
     dialog.put('Error: Failed to get data!');
     return;
   }
   /* the order */
   let order=orders[0],
-  odata=_Hotel.parseJSON(order.data),
+  odata=_Helper.parseJSON(order.data),
   counter=0;
-  tableData=_Hotel.table(),
-  table=_Hotel.table();
+  tableData=_Helper.table(),
+  table=_Helper.table();
   content.append(tableData);
   content.append(table);
   /* head */
   tableData.head('REQUEST ORDER #'+regid,5);
   /* header */
   row=tableData.row(
-    _Hotel.alias('ro_number'),
-    _Hotel.alias('ro_item_id'),
-    _Hotel.alias('ro_price'),
-    _Hotel.alias('ro_count'),
-    _Hotel.alias('ro_subtotal'),
+    _Helper.alias('ro_number'),
+    _Helper.alias('ro_item_id'),
+    _Helper.alias('ro_price'),
+    _Helper.alias('ro_count'),
+    _Helper.alias('ro_subtotal'),
   ).header();
   /* order data */
   for(let od of odata){
     counter++;
-    let item=_Hotel.getDataById(od.item_id,items),
+    let item=_Helper.getDataById(od.item_id,items),
     row=tableData.row(
       counter,
       item.name,
-      _Hotel.parseNominal(od.price),
+      _Helper.parseNominal(od.price),
       od.count+' '+od.unit,
-      _Hotel.parseNominal(od.subtotal),
+      _Helper.parseNominal(od.subtotal),
     );
     row.childNodes[0].classList.add('td-center');
     row.childNodes[2].classList.add('td-right');
     row.childNodes[4].classList.add('td-right');
   }
   /* table */
-  row=table.row(_Hotel.alias('ro_estimate'),_Hotel.parseNominal(order.estimate));
-  row=table.row(_Hotel.alias('ro_status'),order.status==0?'Pending':'Approved');
-  row=table.row(_Hotel.alias('ro_note'),order.note);
+  row=table.row(_Helper.alias('ro_estimate'),_Helper.parseNominal(order.estimate));
+  row=table.row(_Helper.alias('ro_status'),order.status==0?'Pending':'Approved');
+  row=table.row(_Helper.alias('ro_note'),order.note);
   /* put into dialog */
   dialog.put(content);
 };
@@ -1853,15 +1882,15 @@ this.qrPage=function(){
   loader.alt='';
   loader.src=this.IMAGES['loader.gif'];
   setTimeout(function(){
-    _Hotel.QR_OAUTH_ATTEMP=0;
-    _Hotel.qrNewOTP();
+    _Helper.QR_OAUTH_ATTEMP=0;
+    _Helper.qrNewOTP();
   },0x3e8);
   /* footer link */
   footer.onclick=async function(){
     let url='https://github.com/9r3i',
-    yes=await _Hotel.confirmX('Visit programmer website?','URL: '+url);
+    yes=await _Helper.confirmX('Visit programmer website?','URL: '+url);
     if(!yes){return;}
-    _Hotel.openURL(url,'_blank');
+    _Helper.openURL(url,'_blank');
   };
   /* return the object */
   return main;
@@ -1940,7 +1969,7 @@ this.qrScan=async function(){
   },{state:'Stop'}),
   video=this.element('video');
   button.classList.add('video-button');
-  dialog.put(_Hotel.element('div',{},[video,button]));
+  dialog.put(_Helper.element('div',{},[video,button]));
   /* initiate scanner */
   let scanner=new QrScanner(video,async result=>{
     scanner.stop();
@@ -2049,24 +2078,24 @@ this.loginPage=function(){
         fdata[this[i].name]=this[i].value;
       }
     }
-    let loader=_Hotel.loader(),
-    res=await _Hotel.request('login',fdata);
+    let loader=_Helper.loader(),
+    res=await _Helper.request('login',fdata);
     loader.remove();
     this.sbutton.value='Send';
     if(typeof res==='object'&&res!==null&&res.hasOwnProperty('token')){
-      _Hotel.userData(res);
-      _Hotel.start();
+      _Helper.userData(res);
+      _Helper.start();
     }else{
       this.wrapper.classList.add('login-shake');
-      await _Hotel.sleep(500);
+      await _Helper.sleep(500);
       this.wrapper.classList.remove('login-shake');
     }
   };
   footer.onclick=async function(){
     let url='https://github.com/9r3i',
-    yes=await _Hotel.confirmX('Visit programmer website?','URL: '+url);
+    yes=await _Helper.confirmX('Visit programmer website?','URL: '+url);
     if(!yes){return;}
-    _Hotel.openURL(url,'_blank');
+    _Helper.openURL(url,'_blank');
   };
   /* main set */
   main.form=form;
@@ -2124,7 +2153,7 @@ this.accountPage=function(){
     if(key=='birthdate'){
       value=this.parseDate(value);
     }else if(key=='gender'){
-      value=value==1?'Laki-laki':'Perempuan';
+      value=value==1?'Male':'Female';
     }else if(key=='division'){
       value=this.aliasDivision(value);
     }else if(key=='religion'){
@@ -2138,55 +2167,55 @@ this.accountPage=function(){
   }
   let row=document.createElement('div'),
   button=this.button('Edit','blue','edit',function(){
-    _Hotel.accountEditPage();
+    _Helper.accountEditPage();
   }),
   reset=this.button('Reset','blue','clock-o',async function(){
-    let yes=await _Hotel.confirmX('Reset App?');
+    let yes=await _Helper.confirmX('Reset App?');
     if(!yes){return;}
-    let loader=_Hotel.loader();
+    let loader=_Helper.loader();
     if(typeof ABL_OBJECT==='object'&&ABL_OBJECT!==null
       &&typeof ABL_OBJECT.database==='function'){
       ABL_OBJECT.database(false);
     }
-    _Hotel.statusBar('#FFFFFF');
-    await _Hotel.sleep(1000);
+    _Helper.statusBar('#FFFFFF');
+    await _Helper.sleep(1000);
     window.location.reload();
     return;
   }),
   changePass=this.button('Change Password','blue','lock',async function(){
-    let opass=await _Hotel.promptX('Old Password','','password','Next'),
-    npass=await _Hotel.promptX('New Password','','password','Next'),
-    cpass=await _Hotel.promptX('Confirm Password','','password','Send');
+    let opass=await _Helper.promptX('Old Password','','password','Next'),
+    npass=await _Helper.promptX('New Password','','password','Next'),
+    cpass=await _Helper.promptX('Confirm Password','','password','Send');
     if(npass!==cpass){
-      return _Hotel.alert('Error: Password is not equal!','','error');
+      return _Helper.alert('Error: Password is not equal!','','error');
     }
-    let loader=_Hotel.loader(),
-    res=await _Hotel.request('cpass',{
+    let loader=_Helper.loader(),
+    res=await _Helper.request('cpass',{
       old:opass,
       npass:npass,
     });
     loader.remove();
     if(res!='ok'){
-      return _Hotel.alert('Error: Failed to change password.',res,'error');
+      return _Helper.alert('Error: Failed to change password.',res,'error');
     }
-    await _Hotel.alertX('Saved!','','success');
-    _Hotel.userData(false);
-    _Hotel.user=null;
-    _Hotel.loader();
-    await _Hotel.sleep(500);
-    _Hotel.start(true);
+    await _Helper.alertX('Saved!','','success');
+    _Helper.userData(false);
+    _Helper.user=null;
+    _Helper.loader();
+    await _Helper.sleep(500);
+    _Helper.start(true);
   }),
   reverseAccount=this.button('Reverse','blue','recycle',function(){
-    let revData=_Hotel.userData(null,'reverse');
-    _Hotel.userData(false,'reverse');
-    _Hotel.userData(revData);
-    _Hotel.start();
+    let revData=_Helper.userData(null,'reverse');
+    _Helper.userData(false,'reverse');
+    _Helper.userData(revData);
+    _Helper.start();
   }),
   scanBrowser=this.button('Scan QR','orange','qrcode',function(){
     if(window.CORDOVA_LOADED){
-      _Hotel.qrScanPlug();
+      _Helper.qrScanPlug();
     }else{
-      _Hotel.qrScan();
+      _Helper.qrScan();
     }
   });
   row.classList.add('row-buttons');
@@ -2236,22 +2265,22 @@ this.accountEditPage=function(){
   table.classList.add('table-register');
   let row=document.createElement('div'),
   button=this.button('Save','blue','save',async function(){
-    let loader=_Hotel.loader(),
-    fdata=_Hotel.formSerialize();
+    let loader=_Helper.loader(),
+    fdata=_Helper.formSerialize();
     delete fdata.data;
-    let innerQuery=_Hotel.buildQuery(fdata),
-    query='update employee ('+innerQuery+') where id='+_Hotel.user.profile.id,
-    res=await _Hotel.request('query',query);
+    let innerQuery=_Helper.buildQuery(fdata),
+    query='update employee ('+innerQuery+') where id='+_Helper.user.profile.id,
+    res=await _Helper.request('query',query);
     loader.remove();
     if(res!=1){
-      return _Hotel.alert('Error: Failed to save!',res,'error');
+      return _Helper.alert('Error: Failed to save!',res,'error');
     }
-    await _Hotel.alertX('Saved!','','success');
-    _Hotel.userData(false);
-    _Hotel.user=null;
-    _Hotel.loader();
-    await _Hotel.sleep(500);
-    _Hotel.start(true);
+    await _Helper.alertX('Saved!','','success');
+    _Helper.userData(false);
+    _Helper.user=null;
+    _Helper.loader();
+    await _Helper.sleep(500);
+    _Helper.start(true);
   });
   row.append(button);
   row.classList.add('section');
@@ -2299,8 +2328,8 @@ this.codePage=function(){
       let id='code-menu-yellow',
       menu=document.getElementById(id);
       if(!menu&&window.CODE_TOUCH_COUNT>=0x07){
-        _Hotel.notif('Code is OK!','info');
-        let input=_Hotel.input('code');
+        _Helper.notif('Code is OK!','info');
+        let input=_Helper.input('code');
         input.addEventListener('keyup',function(e){
           if(e.keyCode!=13){return;}
           eval(this.value);
@@ -2318,7 +2347,7 @@ this.codeMenu=function(){
   let id='code-menu-yellow',
   menu=document.getElementById(id);
   if(menu){return;}
-  menu=_Hotel.main.addMenu('Code','code',function(){
+  menu=_Helper.main.addMenu('Code','code',function(){
     if(typeof window._Code!=='object'
       ||window._Code===null){
       new Code;
@@ -2327,7 +2356,7 @@ this.codeMenu=function(){
     window._Code.recoding();
   },'yellow');
   menu.id=id;
-  _Hotel.notif('Code is ready!','success');
+  _Helper.notif('Code is ready!','success');
 };
 
 
@@ -2401,10 +2430,10 @@ this.request=async (method,query,xid=0,xtoken='')=>{
   },
   res=await this.eva.request(body,{
     error:function(e){
-      _Hotel.loader(false);
+      _Helper.loader(false);
       let title='Error: Koneksi terputus!',
       text=JSON.stringify(e);
-      _Hotel.alert(title,text,'error');
+      _Helper.alert(title,text,'error');
     },
   }),
   data=this.decode(res);
@@ -2413,30 +2442,30 @@ this.request=async (method,query,xid=0,xtoken='')=>{
     console.trace();
   }
   if(!data){
-    _Hotel.loader(false);
-    _Hotel.alert('Error','Terjadi masalah pada koneksi.','error');
+    _Helper.loader(false);
+    _Helper.alert('Error','Terjadi masalah pada koneksi.','error');
   }else if(typeof data==='string'&&data.match(/^error:/)){
-    _Hotel.loader(false);
+    _Helper.loader(false);
     let title=this.requestErrors.hasOwnProperty(data)
       ?this.requestErrors[data]:'Error!',
     text=this.requestErrors.hasOwnProperty(data+'_text')
       ?this.requestErrors[data+'_text']:data,
     icon=this.requestErrors.hasOwnProperty(data+'_icon')
       ?this.requestErrors[data+'_icon']:'error';
-    _Hotel.alert(title,text,icon);
+    _Helper.alert(title,text,icon);
     if(data=='error:active'||data=='error:access'){
-      _Hotel.userData(false);
-      _Hotel.user=null;
-      _Hotel.loader();
+      _Helper.userData(false);
+      _Helper.user=null;
+      _Helper.loader();
       setTimeout(()=>{
         document.body.setAttribute('class','');
-        _Hotel.start(true);
+        _Helper.start(true);
       },1000);
     }
   }else if(typeof data==='object'&&data!==null
     &&data.hasOwnProperty('error')){
-    _Hotel.loader(false);
-    _Hotel.alert('Error!',JSON.stringify(data.error),'error');
+    _Helper.loader(false);
+    _Helper.alert('Error!',JSON.stringify(data.error),'error');
   }
   return data;
 };
@@ -2812,13 +2841,13 @@ this.externalPage=function(url,title='Untitled'){
   }
   window.EXTERNAL_OPEN=true;
   fc.onclick=function(e){
-    _Hotel.externalPageClose();
+    _Helper.externalPageClose();
   };
   return {
     content:frame,
     header:fh,
     close:function(){
-      _Hotel.externalPageClose();
+      _Helper.externalPageClose();
     },
   };
 };
@@ -2879,9 +2908,9 @@ this.menuMovable=function(id='menu'){
     left=(x-window.MENU_MOVABLE_LEFT.x)+window.MENU_MOVABLE_LEFT.l;
     window.MENU_MOVABLE_LEFT=false;
     if(!isHide){
-      _Hotel.menuShow(id);
+      _Helper.menuShow(id);
     }else if(left<-100){
-      _Hotel.menuHide(id);
+      _Helper.menuHide(id);
     }
   },false);
   window.addEventListener('touchstart',function(e){
@@ -3055,7 +3084,7 @@ this.basicUI=function(htext='Hotel'){
     text=document.createTextNode(loadText);
     img.alt='';
     img.style.marginRight='10px';
-    img.src=_Hotel.IMAGES.hasOwnProperty('loader.gif')?_Hotel.IMAGES['loader.gif']:'';
+    img.src=_Helper.IMAGES.hasOwnProperty('loader.gif')?_Helper.IMAGES['loader.gif']:'';
     loader.append(img);
     loader.append(text);
     this.put('',loader);
@@ -3077,14 +3106,14 @@ this.basicUI=function(htext='Hotel'){
     div.title=text;
     div.callback=typeof cb==='function'?cb:function(){};
     div.onclick=function(){
-      _Hotel.menuHide();
-      _Hotel.loader(false);
+      _Helper.menuHide();
+      _Helper.loader(false);
       this.callback();
     };
     return div;
   };
   mbutton.onclick=function(){
-    _Hotel.menuShow();
+    _Helper.menuShow();
   };
   /* app title */
   let appTitle=document.head.querySelector('title');
@@ -3294,7 +3323,7 @@ this.dialogPage=async function(){
   close.close=function(){
     this.main.remove();
     this.remove();
-    _Hotel.dialog=null;
+    _Helper.dialog=null;
   };
   close.onclick=function(){
     this.close();
@@ -3416,7 +3445,7 @@ this.findSelect=function(config){
             id:this.dataset.id,
             name:this.innerText,
             main:pmain,
-            data:_Hotel.parseJSON(this.dataset.data),
+            data:_Helper.parseJSON(this.dataset.data),
           },inject);
         };
         plist.append(pl);
@@ -3451,7 +3480,7 @@ this.findSelect=function(config){
             id:this.dataset.id,
             name:this.innerText,
             main:pmain,
-            data:_Hotel.parseJSON(this.dataset.data),
+            data:_Helper.parseJSON(this.dataset.data),
           },inject);
         };
         plist.append(pl);
@@ -3490,14 +3519,14 @@ this.dateSelection=function(config){
   id=config.hasOwnProperty('id')?config.id:'date-selection',
   val=document.createElement('div'),
   vdate=document.createElement('span'),
-  idate=_Hotel.input(key,value,'date');
+  idate=_Helper.input(key,value,'date');
   idate.style.width='20px';
   idate.style.marginRight='10px';
   idate.text=vdate;
   idate.max=max;
   idate.min=min;
   idate.onchange=function(){
-    this.text.innerText=_Hotel.parseDate(this.value);
+    this.text.innerText=_Helper.parseDate(this.value);
   };
   idate.onfocus=function(){
     this.text.style.backgroundColor='rgba(51,51,51,0.8)';
@@ -3507,7 +3536,7 @@ this.dateSelection=function(config){
     this.text.style.backgroundColor='transparent';
     this.text.style.color='#333';
   };
-  vdate.innerText=_Hotel.parseDate(value);
+  vdate.innerText=_Helper.parseDate(value);
   vdate.input=idate;
   vdate.style.padding='3px 10px';
   vdate.style.borderRadius='5px';
@@ -3883,7 +3912,7 @@ this.arrayGroup=function(data=[],key='id'){
   }return res;
 };
 /* get years object for selector */
-this.getYears=function(start=2024,length=10){
+this.getYears=function(start=2025,length=10){
   let res={};
   for(let i=0;i<length;i++){
     let v=start+i;
@@ -3932,3 +3961,5 @@ this.openURL=function(url,target,options){
 /* return for construction */
 return this.init();
 };
+
+
