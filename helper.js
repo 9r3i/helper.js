@@ -61,6 +61,7 @@ this.hosts={
   eva         : 'http://127.0.0.1:9303/api/eva/',
   eva_dev     : 'http://127.0.0.1:9304/api/eva/',
   sweetalert  : 'https://cdn.jsdelivr.net/npm/sweetalert2@11',
+  fontawesome : 'https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css',
   repo        : 'https://raw.githubusercontent.com/9r3i/helper.js/master/',
   fonts       : 'https://raw.githubusercontent.com/9r3i/helper.js/master/',
   hotel       : 'http://127.0.0.1:9303/',
@@ -101,6 +102,7 @@ this.paymentMethods={
   qris_mandiri:'QRIS Mandiri',
   qris_bca:'QRIS BRI',
 };
+
 this.aliases={
   hotel_vendor:'Hotel Bandara Syariah',
   id:'ID',
@@ -329,6 +331,7 @@ this.divisions={
   admin:'HRD',
   account:'Profile',
 };
+
 this.religions=[
   'Islam',
   'Catholic',
@@ -3580,6 +3583,37 @@ this.findRow=function(key='name',callback,holder='Search...',hide=false){
   };
   return find;
 };
+/* serialize a form by elements name */
+this.formSerialize=function(idata=false){
+  let data={},
+  res={},
+  form=document.querySelectorAll('[name]');
+  for(let i=0;i<form.length;i++){
+    if(typeof form[i].value==='undefined'){
+      continue;
+    }else if(form[i].name.match(/^data/)){
+      data[form[i].name]=form[i].value;
+    }else if(form[i].type=='radio'){
+      if(form[i].checked){
+        res[form[i].name]=form[i].value;
+      }
+    }else{
+      res[form[i].name]=form[i].value;
+    }
+  }
+  let query=[];
+  for(let k in data){
+    query.push(k+'='+data[k]);
+  }
+  let ndata=this.parseQuery(query.join('&'));
+  if(!ndata.hasOwnProperty('data')){
+    ndata.data={};
+  }
+  if(idata){
+    res.data=JSON.stringify(ndata.data);
+  }
+  return res;
+};
 
 
 
@@ -3703,7 +3737,7 @@ this.downloadJSON=function(data,out='data'){
   window.URL.revokeObjectURL(url);
   return url;
 };
-/* audio play -- search for AUDIOS first */
+/* audio play -- search for window.AUDIOS first */
 this.audioPlay=function(url){
   return new Promise(function(resolve,reject){
     var audio=new Audio();
@@ -3714,39 +3748,8 @@ this.audioPlay=function(url){
     audio.src=window.hasOwnProperty('AUDIOS')&&AUDIOS.hasOwnProperty(url)?AUDIOS[url]:url;
   });
 };
-/* serialize a form by elements name */
-this.formSerialize=function(idata=false){
-  let data={},
-  res={},
-  form=document.querySelectorAll('[name]');
-  for(let i=0;i<form.length;i++){
-    if(typeof form[i].value==='undefined'){
-      continue;
-    }else if(form[i].name.match(/^data/)){
-      data[form[i].name]=form[i].value;
-    }else if(form[i].type=='radio'){
-      if(form[i].checked){
-        res[form[i].name]=form[i].value;
-      }
-    }else{
-      res[form[i].name]=form[i].value;
-    }
-  }
-  let query=[];
-  for(let k in data){
-    query.push(k+'='+data[k]);
-  }
-  let ndata=this.parser.parseQuery(query.join('&'));
-  if(!ndata.hasOwnProperty('data')){
-    ndata.data={};
-  }
-  if(idata){
-    res.data=JSON.stringify(ndata.data);
-  }
-  return res;
-};
 /* parse date and time -- indonesia */
-this.parseDatetime=function(value){
+this.parseDatetime=function(value,format='id-ID'){
   let date=new Date(value),
   options={
     weekday:'long',
@@ -3756,10 +3759,10 @@ this.parseDatetime=function(value){
     hour:'numeric',
     minute:'numeric',
   };
-  return date.toLocaleDateString('id-ID',options);
+  return date.toLocaleDateString(format,options);
 };
-/* parse date -- indonesia */
-this.parseDate=function(value){
+/* parse date -- default: indonesia */
+this.parseDate=function(value,format='id-ID'){
   value=value?value:(new Date).getTime();
   let date=new Date(value),
   options={
@@ -3768,16 +3771,16 @@ this.parseDate=function(value){
     month:'long',
     day:'numeric',
   };
-  return date.toLocaleDateString('id-ID',options);
+  return date.toLocaleDateString(format,options);
 };
-/* parse nominal -- IDR (indonesian rupiah) */
-this.parseNominal=function(nominal){
-  let rupiah=new Intl.NumberFormat('id-ID',{
+/* parse nominal -- default: IDR (indonesian rupiah) */
+this.parseNominal=function(nominal=0,format='id-ID',currency='IDR'){
+  let money=new Intl.NumberFormat(format,{
     style:'currency',
-    currency:'IDR',
+    currency:currency,
     maximumFractionDigits:0,
   });
-  return rupiah.format(nominal);
+  return money.format(nominal);
 };
 /* get value by id -- result: value of data */
 this.getValueById=function(id,key='',data=[]){
@@ -3829,6 +3832,61 @@ this.loadScriptURL=function(url){
   scr.src=url;
   document.head.append(scr);
   return scr;
+};
+/* load style by url */
+this.loadStyleURL=function(url){
+  let scr=document.createElement('link');
+  scr.href=url;
+  src.rel='stylesheet';
+  document.head.append(scr);
+  return scr;
+};
+/* parse url path -- protocol and hostname are not included */
+this.parseURL=function(str){
+  if(typeof str!=='string'){return false;}
+  let obj=str.split('?'),
+  path=obj[0],
+  query=obj.length>1
+    ?this.parseQuery(obj[1]):{};
+  return {
+    path:path,
+    query:query,
+  }
+};
+/* parse url query */
+this.parseQuery=function(t){
+  if(typeof t!=='string'){return false;}
+  let s=t.split('&'),r={},c={};
+  for(let i=0;i<s.length;i++){
+    if(!s[i]||s[i]==''){continue;}
+    let p=s[i].split('='),
+    k=decodeURIComponent(p[0]),
+    m=k.match(/(\[[^\]]*\])/g),
+    v=p[1]?decodeURIComponent(p[1]):'';
+    if(!m){
+      r[k]=v;
+      continue;
+    }
+    let l=k.replace(/\[(.*)?\]$/g,'');
+    c[l]=c[l]?c[l]:0;
+    if(!r[l]){r[l]={};}
+    r[l]=this.parseQueryKey(r[l],m,v);
+  }return r;
+};
+/* parse query key as object keys */
+this.parseQueryKey=function(obj,m,v,i){
+  obj=typeof obj==='object'&&obj!==null?obj:{};
+  i=i?parseInt(i,10):0;
+  if(!Array.isArray(m)||!m[i]){
+    return v;
+  }
+  let ml=m.length,
+  mi=m[i].replace(/^\[(.*)\]$/,'$1');
+  if(!obj[mi]){
+    obj[mi]={};
+  }
+  obj[mi]=this.parseQueryKey(obj[mi],m,v,i+1);
+  return obj;
 };
 /* buildQuery v2, build http query recusively */
 this.buildQuery=function(data,key){
