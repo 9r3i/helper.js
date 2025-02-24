@@ -1,0 +1,25 @@
+{
+  "name": "@9r3i/helper",
+  "version": "1.0.1",
+  "description": "helper.js",
+  "main": "helper.js",
+  "scripts": {
+    "test": "node help"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/9r3i/helper.js.git"
+  },
+  "keywords": [
+    "helper"
+  ],
+  "author": "9r3i",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/9r3i/helper.js/issues"
+  },
+  "homepage": "https://github.com/9r3i/helper.js#readme",
+  "publishConfig": {
+    "access": "public"
+  }
+}

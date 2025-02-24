@@ -103,6 +103,8 @@ this.paymentMethods={
   qris_bca:'QRIS BRI',
 };
 
+/* aliases */
+this.appbaseName='Helper';
 this.aliases={
   hotel_vendor:'Hotel Bandara Syariah',
   id:'ID',
@@ -2929,8 +2931,8 @@ this.menuMovable=function(id='menu'){
     }window.MENU_MOVABLE_LEFT={x:x,l:l,el:el,hide:false};
   },false);
 };
-/* basic ui */
-this.basicUI=function(htext='Hotel'){
+/* basic ui -- require: IMAGES */
+this.basicUI=function(htext='Helper'){
   let main=document.createElement('main'),
   header=document.createElement('div'),
   body=document.createElement('div'),
@@ -3142,7 +3144,7 @@ this.input=function(name='',value='',type='text',placeholder='',maxlength=100,da
   }
   return input;
 };
-/* input[type="radio"] */
+/* input[type="radio"] -- only 1 or 0 */
 this.radioActive=function(key='',value=0,data=['Inactive','Active'],reverse=false){
   let div=document.createElement('div'),
   rad0=document.createElement('input'),
@@ -3176,7 +3178,7 @@ this.radioActive=function(key='',value=0,data=['Inactive','Active'],reverse=fals
   div.append(lab1);
   return div;
 };
-/* input[type="checkbox"] */
+/* input[type="checkbox"] -- require: uniqid */
 this.checkbox=function(name='',value=''){
   let id=this.uniqid(),
   span=document.createElement('span'),
@@ -3300,71 +3302,32 @@ this.table=function(cname='table',cellspacing=2,cellpadding=0){
   };
   return table;
 };
-/* dialog page */
-this.dialogPage=async function(){
-  let old=document.getElementById('dialog-close');
-  if(old){old.close();}
-  let main=document.createElement('div'),
-  close=document.createElement('div'),
-  inner=document.createElement('div'),
-  imgc=new Image,
-  img=new Image;
-  img.src=this.IMAGES['loader.gif'];
-  imgc.src=this.IMAGES['icon-plus.png'];
-  main.classList.add('dialog');
-  main.classList.add('dialog-hide');
-  main.append(inner);
-  inner.append(img);
-  inner.classList.add('dialog-inner');
-  inner.classList.add('dialog-loading');
-  close.append(imgc);
-  close.main=main;
-  close.inner=inner;
-  close.loader=img;
-  close.id='dialog-close';
-  close.classList.add('dialog-close');
-  close.close=function(){
-    this.main.remove();
-    this.remove();
-    _Helper.dialog=null;
+/* find row in the table -- from: tr.dataset.<name> */
+this.findRow=function(key='name',callback,holder='Search...',hide=false){
+  let find=document.createElement('input');
+  find.type=hide?'password':'text';
+  find.placeholder=holder;
+  find.onkeyup=function(e){
+    let rg=new RegExp(this.value,'i'),
+    res={
+      show:[],
+      hide:[],
+    },
+    nm=document.querySelectorAll('tr[data-'+key+']');
+    for(let i=0;i<nm.length;i++){
+      if(nm[i].dataset[key].match(rg)){
+        nm[i].style.removeProperty('display');
+        res.show.push(nm[i]);
+      }else{
+        nm[i].style.display='none';
+        res.hide.push(nm[i]);
+      }
+    }
+    if(typeof callback==='function'){
+      callback(res);
+    }
   };
-  close.onclick=function(){
-    this.close();
-  };
-  close.blank=function(){
-    this.inner.classList.remove('dialog-loading');
-    this.inner.innerHTML='';
-    return this;
-  };
-  close.put=function(el){
-    this.inner.classList.remove('dialog-loading');
-    this.inner.innerHTML='';
-    this.inner.append(el);
-    return this;
-  };
-  this.dialog=close;
-  document.body.append(main);
-  await this.sleep(10);
-  main.classList.remove('dialog-hide');
-  await this.sleep(300);
-  document.body.append(close);
-  return close;
-};
-/* loader + dialog.close */
-this.loader=function(close){
-  let id='loader',
-  old=document.getElementById(id);
-  if(old){old.remove();}
-  if(this.dialog){this.dialog.close();}
-  if(close===false){return;}
-  let outer=document.createElement('div'),
-  inner=document.createElement('span');
-  outer.append(inner);
-  outer.id=id;
-  inner.classList.add('loader-inner');
-  outer.classList.add('loader-outer');
-  document.body.append(outer);
-  return outer;
+  return find;
 };
 /* find with select */
 this.findSelect=function(config){
@@ -3503,6 +3466,72 @@ this.findSelect=function(config){
   };
   return pmain;
 };
+/* dialog page -- require: IMAGES */
+this.dialogPage=async function(){
+  let old=document.getElementById('dialog-close');
+  if(old){old.close();}
+  let main=document.createElement('div'),
+  close=document.createElement('div'),
+  inner=document.createElement('div'),
+  imgc=new Image,
+  img=new Image;
+  img.src=this.IMAGES['loader.gif'];
+  imgc.src=this.IMAGES['icon-plus.png'];
+  main.classList.add('dialog');
+  main.classList.add('dialog-hide');
+  main.append(inner);
+  inner.append(img);
+  inner.classList.add('dialog-inner');
+  inner.classList.add('dialog-loading');
+  close.append(imgc);
+  close.main=main;
+  close.inner=inner;
+  close.loader=img;
+  close.id='dialog-close';
+  close.classList.add('dialog-close');
+  close.close=function(){
+    this.main.remove();
+    this.remove();
+    _Helper.dialog=null;
+  };
+  close.onclick=function(){
+    this.close();
+  };
+  close.blank=function(){
+    this.inner.classList.remove('dialog-loading');
+    this.inner.innerHTML='';
+    return this;
+  };
+  close.put=function(el){
+    this.inner.classList.remove('dialog-loading');
+    this.inner.innerHTML='';
+    this.inner.append(el);
+    return this;
+  };
+  this.dialog=close;
+  document.body.append(main);
+  await this.sleep(10);
+  main.classList.remove('dialog-hide');
+  await this.sleep(300);
+  document.body.append(close);
+  return close;
+};
+/* loader + dialog.close */
+this.loader=function(close){
+  let id='loader',
+  old=document.getElementById(id);
+  if(old){old.remove();}
+  if(this.dialog){this.dialog.close();}
+  if(close===false){return;}
+  let outer=document.createElement('div'),
+  inner=document.createElement('span');
+  outer.append(inner);
+  outer.id=id;
+  inner.classList.add('loader-inner');
+  outer.classList.add('loader-outer');
+  document.body.append(outer);
+  return outer;
+};
 /* date selection */
 this.dateSelection=function(config){
   /**
@@ -3513,6 +3542,7 @@ this.dateSelection=function(config){
    *   - min   = minimum date; default: 1960-01-01
    *   - max   = maximum date; default: 2038-12-31
    * return: object of element with property of element: span and input
+   * require: parseDate, input
    */
   config=typeof config==='object'&&config!==null?config:{};
   let key=config.hasOwnProperty('key')?config.key:'key',
@@ -3556,34 +3586,38 @@ this.dateSelection=function(config){
   val.id=id;
   return val;
 };
-/* find row in the table */
-this.findRow=function(key='name',callback,holder='Search...',hide=false){
-  let find=document.createElement('input');
-  find.type=hide?'password':'text';
-  find.placeholder=holder;
-  find.onkeyup=function(e){
-    let rg=new RegExp(this.value,'i'),
-    res={
-      show:[],
-      hide:[],
-    },
-    nm=document.querySelectorAll('tr[data-'+key+']');
-    for(let i=0;i<nm.length;i++){
-      if(nm[i].dataset[key].match(rg)){
-        nm[i].style.removeProperty('display');
-        res.show.push(nm[i]);
-      }else{
-        nm[i].style.display='none';
-        res.hide.push(nm[i]);
-      }
-    }
-    if(typeof callback==='function'){
-      callback(res);
-    }
-  };
-  return find;
+
+
+/* ---------- ALIASES METHODS ---------- */
+/* alias position -- require: positions */
+this.aliasPosition=function(text=''){
+  let aliases=typeof this.positions==='object'&&this.positions!==null?this.positions:{};
+  return aliases.hasOwnProperty(text)?aliases[text]:text;
 };
-/* serialize a form by elements name */
+/* alias division -- require: divisions */
+this.aliasDivision=function(text=''){
+  let aliases=typeof this.divisions==='object'&&this.divisions!==null?this.divisions:{};
+  return aliases.hasOwnProperty(text)?aliases[text]:text;
+};
+/* alias -- require: aliases */
+this.alias=function(text=''){
+  let aliases=typeof this.aliases==='object'&&this.aliases!==null?this.aliases:{};
+  return aliases.hasOwnProperty(text)?aliases[text]:text;
+};
+/* app name to app function -- require: appbaseName */
+this.getAppClassName=function(name=''){
+  let an=name.split(/[^a-z]+/ig),
+  ar=[this.appbaseName];
+  for(let d of an){
+    ar.push(d.substring(0,1).toUpperCase());
+    ar.push(d.substring(1).replace(/[^a-z]+/ig,''));
+  }
+  return ar.join('');
+};
+
+
+/* ---------- STAND-ALONE METHODS ---------- */
+/* serialize a form by elements name -- require: parseQuery */
 this.formSerialize=function(idata=false){
   let data={},
   res={},
@@ -3614,48 +3648,8 @@ this.formSerialize=function(idata=false){
   }
   return res;
 };
-
-
-
-/* ---------- STAND-ALONE METHODS ---------- */
-/* create element -- stand-alone */
-this.element=function(name='div',attr={},children=[]){
-  attr=typeof attr==='object'&&attr!==null?attr:{};
-  children=Array.isArray(children)?children:[];
-  let main=document.createElement(name);
-  /* set attributes */
-  for(let k in attr){
-    main.setAttribute(k,attr[k]);
-  }
-  /* add children */
-  for(let child of children){
-    main.append(child);
-  }
-  /* add object property and method */
-  main.attr=attr;
-  main.html=function(html=''){
-    this.innerHTML=html;
-    return this;
-  };
-  main.text=function(text=''){
-    this.innerText=text;
-    return this;
-  };
-  main.content=function(content=''){
-    this.textContent=content;
-    return this;
-  };
-  main.appendTo=function(el){
-    if(typeof el==='object'&&el!==null
-    &&typeof el.append==='function'){
-      el.append(this);
-    }return this;
-  };
-  /* return the element object */
-  return main;
-};
 /* local storage */
-this.storage=function(prefix='hotel/'){
+this.storage=function(prefix='local/'){
   let store={
     __prefix:prefix,
     get:function(key=''){
@@ -3700,30 +3694,41 @@ this.storage=function(prefix='hotel/'){
   };
   return store;
 };
-/* app name to app function */
-this.getAppClassName=function(name=''){
-  let an=name.split(/[^a-z]+/ig),
-  ar=['Hotel'];
-  for(let d of an){
-    ar.push(d.substring(0,1).toUpperCase());
-    ar.push(d.substring(1).replace(/[^a-z]+/ig,''));
+/* create element -- stand-alone */
+this.element=function(name='div',attr={},children=[]){
+  attr=typeof attr==='object'&&attr!==null?attr:{};
+  children=Array.isArray(children)?children:[];
+  let main=document.createElement(name);
+  /* set attributes */
+  for(let k in attr){
+    main.setAttribute(k,attr[k]);
   }
-  return ar.join('');
-};
-/* alias position */
-this.aliasPosition=function(text=''){
-  let aliases=typeof this.positions==='object'&&this.positions!==null?this.positions:{};
-  return aliases.hasOwnProperty(text)?aliases[text]:text;
-};
-/* alias division */
-this.aliasDivision=function(text=''){
-  let aliases=typeof this.divisions==='object'&&this.divisions!==null?this.divisions:{};
-  return aliases.hasOwnProperty(text)?aliases[text]:text;
-};
-/* alias */
-this.alias=function(text=''){
-  let aliases=typeof this.aliases==='object'&&this.aliases!==null?this.aliases:{};
-  return aliases.hasOwnProperty(text)?aliases[text]:text;
+  /* add children */
+  for(let child of children){
+    main.append(child);
+  }
+  /* add object property and method */
+  main.attr=attr;
+  main.html=function(html=''){
+    this.innerHTML=html;
+    return this;
+  };
+  main.text=function(text=''){
+    this.innerText=text;
+    return this;
+  };
+  main.content=function(content=''){
+    this.textContent=content;
+    return this;
+  };
+  main.appendTo=function(el){
+    if(typeof el==='object'&&el!==null
+    &&typeof el.append==='function'){
+      el.append(this);
+    }return this;
+  };
+  /* return the element object */
+  return main;
 };
 /* JSON download */
 this.downloadJSON=function(data,out='data'){
@@ -3853,7 +3858,7 @@ this.parseURL=function(str){
     query:query,
   }
 };
-/* parse url query */
+/* parse url query -- require: parseQueryKey */
 this.parseQuery=function(t){
   if(typeof t!=='string'){return false;}
   let s=t.split('&'),r={},c={};
@@ -3920,6 +3925,69 @@ this.parseJSON=function(data){
   }catch(e){
     res=false;
   }return res;
+};
+/* like json, or into readable json string -- require: objectLength */
+this.likeJSON=function(obj,limit,space,pad){
+  let rtext='';  
+  space=space?parseInt(space,0xa):0x0;
+  limit=limit?parseInt(limit,0xa):0x1;
+  pad=pad?parseInt(pad,0xa):0x2;
+  if((typeof obj==='object'&&obj!==null)
+    ||Array.isArray(obj)){
+    let start=Array.isArray(obj)?'[':'{',
+        end=Array.isArray(obj)?']':'}';
+    if(space==0x0){
+      rtext+=(' ').repeat(pad*space)+''+start+'\r\n';
+    }
+    let len=this.objectLength(obj),counter=0;
+    for(let i in obj){
+      counter++;
+      let comma=counter<len?',':'',e=obj[i],espace=space+2;
+      if((typeof e==='object'&&e!==null)
+        ||Array.isArray(e)){
+        let estart=Array.isArray(e)?'[':'{',
+            eend=Array.isArray(e)?']':'}',
+            k=start==='{'?'"'+i+'": ':'';
+        rtext+=(' ').repeat(pad*espace)+''+k+estart+'\r\n';
+        if((espace/2)<limit){
+          rtext+=this.likeJSON(e,limit,espace,pad);
+        }else{
+          rtext+=(' ').repeat(pad*(espace+2))
+            +'[***LIMITED:'+limit+'***]\r\n';
+        }
+        rtext+=(' ').repeat(pad*espace)+''+eend+comma+'\r\n';
+      }else if(typeof e==='string'||typeof e==='number'){
+        let k=typeof e==='number'?e.toString():JSON.stringify(e);
+        i=start==='{'?'"'+i+'": ':'';
+        rtext+=(' ').repeat(pad*espace)+''+i+k+comma+'\r\n';
+      }else if(typeof e==='boolean'){
+        let k=e===true?'true':'false';
+        i=start==='{'?'"'+i+'": ':'';
+        rtext+=(' ').repeat(pad*espace)+''+i+k+comma+'\r\n';
+      }else if(e===null){
+        i=start==='{'?'"'+i+'": ':'';
+        rtext+=(' ').repeat(pad*espace)+''+i+'null'+comma+'\r\n';
+      }else{
+        let k='"['+(typeof e)+']"';
+        i=start==='{'?'"'+i+'" : ':'';
+        rtext+=(' ').repeat(pad*espace)+''+i+k+comma+'\r\n';
+      }
+    }
+    if(space==0){
+      rtext+=(' ').repeat(pad*space)+''+end+'\r\n';
+    }
+  }else if(typeof obj==='string'){
+    rtext+=(' ').repeat(pad*space)+'"'+obj+'"\r\n';
+  }else if(typeof obj==='number'){
+    rtext+=(' ').repeat(pad*space)+''+obj.toString()+'\r\n';
+  }else if(typeof obj==='boolean'){
+    rtext+=(' ').repeat(pad*space)+''+(obj===true
+      ?'true':'false')+'\r\n';
+  }else if(obj===null){
+    rtext+=(' ').repeat(pad*space)+'null\r\n';
+  }else{
+    rtext+=(' ').repeat(pad*space)+'"['+(typeof obj)+']"\r\n';
+  }return rtext;
 };
 /* generate uniqid */
 this.uniqid=function(prefix){
