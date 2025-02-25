@@ -41,7 +41,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:100,
+  value:102,
   writable:false,
 });
 /* the version */
@@ -64,15 +64,12 @@ this.hosts={
   fontawesome : 'https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css',
   repo        : 'https://raw.githubusercontent.com/9r3i/helper.js/master/',
   fonts       : 'https://raw.githubusercontent.com/9r3i/helper.js/master/',
-  hotel       : 'http://127.0.0.1:9303/',
   lastReport  : 'http://127.0.0.1:9303/dev/report/report.latest.txt',
 };
 
 /* user information */
 this.user=null;
 this.eva=null;
-this.parser=null;
-this.ini=null;
 this.dialog=null;
 this.IMAGES=IMAGES||{};
 this.main=null;
@@ -106,7 +103,7 @@ this.paymentMethods={
 /* aliases */
 this.appbaseName='Helper';
 this.aliases={
-  hotel_vendor:'Hotel Bandara Syariah',
+  app_vendor:'Hotel Bandara Syariah',
   id:'ID',
   name:'Nama Lengkap',
   position:'Jabatan',
@@ -389,8 +386,6 @@ this.init=function(){
   },
   eva_config=localStorage.getItem('eva_config');
   this.eva=new eva(eva_config||eva_default_config);
-  this.parser=new parser;
-  this.ini=new ini;
   /* load sweetalert */
   this.loadScriptURL(this.hosts.sweetalert);
   /* put the object to global scope */
@@ -455,7 +450,7 @@ this.start=async function(app){
   this.updatePage();
   /* login page */
   if(!this.isLogin()){
-    window.hotelPage=function(){
+    window.appPage=function(){
       _Helper.start(true);
     };
     this.statusBar('#7c1111');
@@ -464,7 +459,7 @@ this.start=async function(app){
     return false;
   }
   /* load basic ui */
-  this.main=this.basicUI(this.alias('hotel_vendor'));
+  this.main=this.basicUI(this.alias('app_vendor'));
   document.body.append(this.main);
   /* movable menu */
   this.menuMovable();
@@ -1843,17 +1838,6 @@ this.requestOrderView=async function(regid){
   /* put into dialog */
   dialog.put(content);
 };
-/* get grand total */
-this.getGrandTotal=function(){
-  let fdata=this.formSerialize(true),
-  data=this.parseJSON(fdata.data),
-  gtotal=0;
-  for(let i in data){
-    let val=data[i],
-    subtotal=parseInt(val.price,10)*parseInt(val.count,10);
-    gtotal+=subtotal;
-  }return gtotal;
-};
 
 
 /* ---------- PAGES ---------- */
@@ -1907,7 +1891,7 @@ this.qrNewOTP=async function(){
   this.QR_OAUTH_ATTEMP++;
   let id='qrcode-oauth',
   host=this.production?this.hosts.eva:this.hosts.eva_dev,
-  urlNew=host+'hotel/otp/new/'+this.uniqid(),
+  urlNew=host+'helper/otp/new/'+this.uniqid(),
   body=document.getElementById(id),
   otp=await fetch(urlNew,{mode:'cors'}).then(r=>r.text());
   if(!body){return;}
@@ -2120,30 +2104,6 @@ this.updatePage=async function(){
   let versionText='v'+versionCode.toString().trim().split('').join('.'),
   yes=await this.confirmX('Update available!','Update now? ('+versionText+')');
   if(!yes){return;}
-  await this.sleep(1000);
-  this.statusBar('#ffffff');
-  window.location.reload();
-};
-/* update page old */
-this.updatePage__OLD=async function(){
-  await this.sleep(5000);
-  let res=await fetch(this.hosts.version,{
-    mode:'cors',
-  }).then(r=>r.text()),
-  versionCode=parseInt(res,10),
-  versionText='v'+res.toString().trim().split('').join('.');
-  if(this.versionCode>=versionCode){
-    return;
-  }
-  let yes=await this.confirmX('Update available!','Update now? ('+versionText+')');
-  if(!yes){return;}
-  /* start resetting */
-  if(window.hasOwnProperty('ABL_OBJECT')
-    &&typeof window.ABL_OBJECT==='object'
-    &&window.ABL_OBJECT!==null){
-    ABL_OBJECT.database(false);
-  }
-  this.loader();
   await this.sleep(1000);
   this.statusBar('#ffffff');
   window.location.reload();
@@ -2633,12 +2593,12 @@ this.confirm=(title,text,cb)=>{
  * notif -- REQUIRES: sweetalert2@11
  * icons: success (default), error, warning, info, question
  */
-this.notif=(message,icon)=>{
+this.notif=(message,icon,time=1200,position="top-end")=>{
   let Toast=Swal.mixin({
     toast:true,
-    position:"top-end",
+    position:position,
     showConfirmButton:false,
-    timer:1200,
+    timer:time,
     timerProgressBar:true,
     didOpen:(toast)=>{
       toast.onmouseenter=Swal.stopTimer;
@@ -2778,6 +2738,7 @@ this.isBrowser=function(){
     return true;
   }return false;
 };
+
 
 /* ---------- UI METHODS ---------- */
 /* dashboard menu */
@@ -3617,6 +3578,17 @@ this.getAppClassName=function(name=''){
 
 
 /* ---------- STAND-ALONE METHODS ---------- */
+/* get grand total from each price and count -- require: formSerialize */
+this.getGrandTotal=function(){
+  let fdata=this.formSerialize(true),
+  data=this.parseJSON(fdata.data),
+  gtotal=0;
+  for(let i in data){
+    let val=data[i],
+    subtotal=parseInt(val.price,10)*parseInt(val.count,10);
+    gtotal+=subtotal;
+  }return gtotal;
+};
 /* serialize a form by elements name -- require: parseQuery */
 this.formSerialize=function(idata=false){
   let data={},
