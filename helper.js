@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:103,
+  value:104,
   writable:false,
 });
 /* the version */
@@ -81,7 +81,792 @@ this.init=function(){
   /* return the object */
   return this;
 };
+/* start the app */
+this.start=async function(app){
+  /* check everything is ready */
+  let isReady=await this.isEverythingReady();
+  //if(!isReady){return alert('Error: Something is not ready!');}
+  /* statusbar */
+  this.statusBar('#7c1111');
+  /* setup backbutton */
+  document.addEventListener("backbutton",e=>{
+    e.preventDefault();
+    this.confirm('Close the app?','',yes=>{
+      if(yes){
+        this.closeApp();
+      }
+    });
+  },false);
+  /* remove context menu */
+  if(this.production!==false){
+    window.addEventListener('contextmenu',function(e){
+      e.preventDefault();
+      return false;
+    },false);
+  }
+  /* clear body element */
+  document.body.innerHTML='';
+  /* prepare print style */
+  if(typeof ABL_OBJECT==='object'&&ABL_OBJECT!==null&&!Array.isArray(ABL_OBJECT)){
+    for(let style of ABL_OBJECT.data.style){
+      let elStyle=document.createElement('style');
+      elStyle.media='print,screen';
+      elStyle.rel='stylesheet';
+      elStyle.textContent=style;
+      document.head.append(elStyle);
+    }
+  }else{
+    let link=document.createElement('link');
+    link.type='text/css';
+    link.rel='stylesheet';
+    link.href='css/helper'+(this.production?'.min':'')+'.css';
+    document.head.append(link);
+  }
+  /* check userdata */
+  let user=this.userData();
+  if(user){
+    this.user=user;
+    let scopes=user.scope=='*'?this.apps:user.scope.split(',');
+    this.user.scope=[];
+    for(let scope of scopes){
+      if(this.apps.indexOf(scope.trim())>=0){
+        this.user.scope.push(scope.trim());
+      }
+    }
+  }
+  /* update page */
+  this.updatePage();
+  /* login page */
+  if(!this.isLogin()){
+    window.appPage=function(){
+      _Helper.start(true);
+    };
+    this.statusBar('#7c1111');
+    let main=app?this.loginPage():this.frontPage();
+    document.body.append(main);
+    return false;
+  }
+  /* load basic ui */
+  this.main=this.basicUI(this.alias('app_vendor'));
+  document.body.append(this.main);
+  /* movable menu */
+  this.menuMovable();
+  /* set division header */
+  let division=typeof app==='string'?app:this.user.profile.division,
+  headerText=this.divisions.hasOwnProperty(division)?this.divisions[division]:division;
+  this.main.bodyHeader.innerText=headerText;
+  this.main.bodyHeader.dataset.scope=JSON.stringify(this.user.scope);
+  this.main.bodyHeader.dataset.app=division;
+  this.main.bodyHeader.dataset.text=headerText;
+  this.main.bodyHeader.dataset.open='0';
+  this.main.bodyHeader.dataset.width=this.main.bodyHeader.offsetWidth+'px';
+  this.main.bodyHeader.style.width=this.main.bodyHeader.offsetWidth+'px';
+  this.main.bodyHeader.helper=this;
+  this.main.bodyHeader.onclick=async function(){
+    if(this.dataset.open=='1'){return;}
+    this.dataset.open='1';
+    this.style.width='200px';
+    if(this.helper.user.scope.length<3){
+      await this.helper.sleep(500);
+      this.style.width=this.dataset.width;
+      this.dataset.open='0';
+      return;
+    }
+    let divisions=this.helper.divisions,
+    scope=this.helper.parseJSON(this.dataset.scope),
+    apps={};
+    for(let i of scope){
+      if(i=='account'){continue;}
+      apps[i]=divisions[i];
+    }
+    let sel=this.helper.select('app',this.dataset.app,apps,e=>{
+      this.helper.start(sel.value);
+    });
+    this.innerHTML='';
+    this.append(sel);
+    sel.focus();
+    sel.onblur=async e=>{
+      await this.helper.sleep(500);
+      this.style.width=this.dataset.width;
+      this.dataset.open='0';
+      this.innerText=this.dataset.text;
+    };
+  };
+  /* ---------- APPLICATION (per division) ---------- */
+  let menus=[],
+  appDiv=typeof app==='string'?app:this.user.profile.division,
+  appClass=this.getAppClassName(appDiv);
+  if(typeof window[appClass]==='function'&&this.apps.indexOf(appDiv)>=0){
+    if(this.user.scope.indexOf(appDiv)>=0
+      &&this.user.privilege>=4){
+      let _AppObject=new window[appClass];
+      menus=typeof _AppObject.menus==='function'?_AppObject.menus():[];
+      if(typeof _AppObject.dashboard==='function'){
+        _AppObject.dashboard();
+      }else{
+        this.accountPage();
+      }
+    }else{
+      let errorTitle='Error: Access denied!',
+      errorMessage='Your access to "'+appDiv+'" division is denied. '
+        +'Please, contact your administrator to solve this problem.';
+      this.alert(
+        errorTitle,
+        errorMessage,
+        'error'
+      );
+      this.main.put(errorTitle,errorMessage);
+    }
+  }else{
+    let errorTitle='Error: Application is not available!',
+    errorMessage='The application of "'+appDiv+'" division is not available. '
+      +'Please, contact your administrator to solve this problem.';
+    this.alert(
+      errorTitle,
+      errorMessage,
+      'error'
+    );
+    this.main.put(errorTitle,errorMessage);
+  }
+  /* put the menus */
+  for(let menu of menus){
+    this.main.addMenu(menu.name,menu.icon,menu.callback);
+  }
+  /* account menus */
+  if(this.user.scope.indexOf('account')>=0){
+    this.main.addMenu('Profile','user',function(){
+      this.helper.menuHide();
+      this.helper.accountPage();
+    });
+    this.main.addMenu('Logout','power-off',function(){
+      this.helper.menuHide();
+      this.helper.logout();
+    },'#d33');
+  }
+  /* menu ui fix */
+  window.addEventListener('resize',e=>{
+    this.menuUIFix();
+  },false);
+  this.menuUIFix();
+};
 
+
+
+
+/* ---------- PAGES ---------- */
+/* qr page */
+this.qrPage=function(){
+  let main=document.createElement('main'),
+  wrapper=document.createElement('div'),
+  header=document.createElement('div'),
+  body=document.createElement('div'),
+  footer=document.createElement('div'),
+  loader=document.createElement('img'),
+  clear=document.createElement('div');
+  /* appending */
+  body.append(loader);
+  wrapper.append(header);
+  wrapper.append(body);
+  wrapper.append(footer);
+  wrapper.append(clear);
+  main.append(wrapper);
+  /* class */
+  main.classList.add('login-wrapper');
+  wrapper.classList.add('login');
+  header.classList.add('login-header');
+  header.dataset.text='LoginQR';
+  body.classList.add('login-body');
+  footer.classList.add('login-footer');
+  footer.dataset.text='Powered by 9r3i';
+  footer.title='Powered by 9r3i';
+  /* qrcode */
+  body.id='qrcode-oauth';
+  loader.alt='';
+  loader.src=this.IMAGES['loader.gif'];
+  setTimeout(()=>{
+    this.QR_OAUTH_ATTEMP=0;
+    this.qrNewOTP();
+  },0x3e8);
+  /* footer link */
+  footer.helper=this;
+  footer.onclick=async function(){
+    let url='https://github.com/9r3i',
+    yes=await this.helper.confirmX('Visit programmer website?','URL: '+url);
+    if(!yes){return;}
+    this.helper.openURL(url,'_blank');
+  };
+  /* return the object */
+  return main;
+};
+this.qrNewOTP=async function(){
+  if(this.QR_OAUTH_ATTEMP>=0x03){
+    return this.alert('Error: Failed to login!','','error');
+  }
+  this.QR_OAUTH_ATTEMP++;
+  let id='qrcode-oauth',
+  host=this.production?this.hosts.eva:this.hosts.eva_dev,
+  urlNew=host+'helper/otp/new/'+this.uniqid(),
+  body=document.getElementById(id),
+  otp=await fetch(urlNew,{mode:'cors'}).then(r=>r.text());
+  if(!body){return;}
+  body.dataset.otp=otp;
+  body.innerHTML='';
+  new QRCode(id,{
+    text:otp,
+    width:200,
+    height:200,
+    colorDark:"#000000",
+    colorLight:"#ffffff",
+    correctLevel:QRCode.CorrectLevel.H
+  });
+  this.qrCheckOTP();
+  await this.sleep(55*1000);
+  body=document.getElementById(id);
+  if(!body){return;}
+  let loader=document.createElement('img');
+  loader.alt='';
+  loader.src=this.IMAGES['loader.gif'];
+  body.dataset.otp='';
+  body.innerHTML='';
+  body.append(loader);
+  return this.qrNewOTP();
+};
+this.qrCheckOTP=async function(){
+  let id='qrcode-oauth',
+  body=document.getElementById(id);
+  if(!body||!body.dataset.hasOwnProperty('otp')
+    ||body.dataset.otp==''){return;}
+  let host=this.production?this.hosts.eva:this.hosts.eva_dev,
+  urlCheck=host+'hotel/otp/check/'+body.dataset.otp,
+  res=await fetch(urlCheck,{mode:'cors'}).then(r=>r.text());
+  if(res.toString().match(/^error/i)){
+    return this.qrCheckOTP();
+  }
+  this.userData(this.parseJSON(res));
+  this.start();
+};
+this.qrOauth=async function(otp=''){
+  let res=await this.request('oauth',{otp});
+  if(res.toString().match(/^error/i)){
+    return false;
+  }return true;
+};
+this.qrScan=async function(){
+  let dialog=await this.dialogPage(),
+  button=this.button('','red','stop',function(){
+    if(this.dataset.state=='Stop'){
+      this.scanner.stop();
+      this.classList.remove('button-red');
+      this.classList.add('button-blue');
+      this.childNodes[0].classList.remove('fa-stop');
+      this.childNodes[0].classList.add('fa-play');
+      this.dataset.state='Start';
+    }else{
+      this.scanner.start();
+      this.classList.remove('button-blue');
+      this.classList.add('button-red');
+      this.childNodes[0].classList.remove('fa-play');
+      this.childNodes[0].classList.add('fa-stop');
+      this.dataset.state='Stop';
+    }
+  },{state:'Stop'}),
+  video=this.element('video');
+  button.classList.add('video-button');
+  dialog.put(this.element('div',{},[video,button]));
+  /* initiate scanner */
+  let scanner=new QrScanner(video,async result=>{
+    scanner.stop();
+    let loader=this.loader(),
+    res=await this.qrOauth(result.data);
+    loader.remove();
+    if(!res){
+      return this.alert('Error: Failed to login!',res,'error');
+    }
+    dialog.close();
+    return this.alert('Successfully logged in to browser!','','success');
+  },{
+    onDecodeError:async error=>{
+    },
+    highlightScanRegion:true,
+    highlightCodeOutline:true,
+  });
+  button.scanner=scanner;
+  /* start scanning */
+  scanner.start();
+};
+this.qrScanPlug=async function(){
+  /* require: cordova-plugin-qrscanner-11 */
+  if(typeof QRScanner!=='object'||QRScanner===null){
+    return this.alert('Error: Failed to get scanner!','','error');
+  }
+  QRScanner.prepare((e,s)=>{
+    if(e){
+      return this.alert('Error: Failed to prepare camera!',e._message,'error');
+    }
+    if(!s.authorized){
+      return this.alert('Error: Camera access denied!','','error');
+    }
+    QRScanner.show();
+    QRScanner.scan(async (e,r)=>{
+      if(e){return;}
+      let loader=this.loader(),
+      res=await this.qrOauth(r);
+      loader.remove();
+      QRScanner.hide();
+      QRScanner.destroy();
+      if(!res){
+        return this.alert('Error: Failed to login!',res,'error');
+      }
+      return this.alert('Successfully logged in to browser!','','success');
+    });
+  });
+};
+/* login page */
+this.loginPage=function(){
+  if(this.isBrowser()){
+    return this.qrPage();
+  }
+  let main=document.createElement('main'),
+  wrapper=document.createElement('div'),
+  header=document.createElement('div'),
+  form=document.createElement('form'),
+  table=this.table('login-table'),
+  uname=document.createElement('input'),
+  pword=document.createElement('input'),
+  submit=document.createElement('input'),
+  footer=document.createElement('div'),
+  clear=document.createElement('div');
+  table.row('Username',uname);
+  table.row('Password',pword);
+  table.row('',submit);
+  /* appending */
+  form.append(table);
+  wrapper.append(header);
+  wrapper.append(form);
+  wrapper.append(footer);
+  wrapper.append(clear);
+  main.append(wrapper);
+  /* class */
+  main.classList.add('login-wrapper');
+  wrapper.classList.add('login');
+  header.classList.add('login-header');
+  header.dataset.text='Login';
+  uname.classList.add('login-input');
+  uname.name='username';
+  uname.type='text';
+  uname.placeholder='Username';
+  pword.classList.add('login-input');
+  pword.name='password';
+  pword.type='password';
+  pword.placeholder='Password';
+  submit.classList.add('login-submit');
+  submit.classList.add('signin');
+  submit.type='submit';
+  submit.name='submit';
+  submit.value='Send';
+  footer.classList.add('login-footer');
+  footer.dataset.text='Powered by 9r3i';
+  footer.title='Powered by 9r3i';
+  /* event */
+  form.uname=uname;
+  form.pword=pword;
+  form.wrapper=wrapper;
+  form.sbutton=submit;
+  form.helper=this;
+  form.onsubmit=async function(e){
+    e.preventDefault();
+    this.sbutton.value='Sending...';
+    let fdata={};
+    for(let i=0;i<this.length;i++){
+      if(this[i].name){
+        fdata[this[i].name]=this[i].value;
+      }
+    }
+    let loader=this.helper.loader(),
+    res=await this.helper.request('login',fdata);
+    loader.remove();
+    this.sbutton.value='Send';
+    if(typeof res==='object'&&res!==null&&res.hasOwnProperty('token')){
+      this.helper.userData(res);
+      this.helper.start();
+    }else{
+      this.wrapper.classList.add('login-shake');
+      await this.helper.sleep(500);
+      this.wrapper.classList.remove('login-shake');
+    }
+  };
+  footer.helper=this;
+  footer.onclick=async function(){
+    let url='https://github.com/9r3i',
+    yes=await this.helper.confirmX('Visit programmer website?','URL: '+url);
+    if(!yes){return;}
+    this.helper.openURL(url,'_blank');
+  };
+  /* main set */
+  main.form=form;
+  /* return the object */
+  return main;
+};
+/* update page */
+this.updatePage=async function(){
+  let raw=localStorage.getItem('abl-data-app').substring(0,15),
+  mat=raw.match(/(\d+)/),
+  versionCode=mat?parseInt(mat[1],10):this.versionCode;
+  if(this.versionCode>=versionCode){
+    await this.sleep(5000);
+    await this.updatePage();
+    return;
+  }
+  let versionText='v'+versionCode.toString().trim().split('').join('.'),
+  yes=await this.confirmX('Update available!','Update now? ('+versionText+')');
+  if(!yes){return;}
+  await this.sleep(1000);
+  this.statusBar('#ffffff');
+  window.location.reload();
+};
+/* account page */
+this.accountPage=function(){
+  let table=this.table(),
+  passes=['time'];
+  for(let key in this.user.profile){
+    if(passes.indexOf(key)>=0){continue;}
+    let value=this.user.profile[key];
+    if(key=='birthdate'){
+      value=this.parseDate(value);
+    }else if(key=='gender'){
+      value=value==1?'Male':'Female';
+    }else if(key=='division'){
+      value=this.aliasDivision(value);
+    }else if(key=='religion'){
+      value=this.element('span',{
+        id:'code-pad',
+      }).text(this.aliasPosition(value));
+    }else if(key=='position'){
+      value=this.aliasPosition(value);
+    }
+    table.row(this.alias(key),value);
+  }
+  let row=document.createElement('div'),
+  button=this.button('Edit','blue','edit',function(){
+    this.helper.accountEditPage();
+  }),
+  reset=this.button('Reset','blue','clock-o',async function(){
+    let yes=await this.helper.confirmX('Reset App?');
+    if(!yes){return;}
+    let loader=this.helper.loader();
+    if(typeof ABL_OBJECT==='object'&&ABL_OBJECT!==null
+      &&typeof ABL_OBJECT.database==='function'){
+      ABL_OBJECT.database(false);
+    }
+    this.helper.statusBar('#FFFFFF');
+    await this.helper.sleep(1000);
+    window.location.reload();
+    return;
+  }),
+  changePass=this.button('Change Password','blue','lock',async function(){
+    let opass=await this.helper.promptX('Old Password','','password','Next'),
+    npass=await this.helper.promptX('New Password','','password','Next'),
+    cpass=await this.helper.promptX('Confirm Password','','password','Send');
+    if(npass!==cpass){
+      return this.helper.alert('Error: Password is not equal!','','error');
+    }
+    let loader=this.helper.loader(),
+    res=await this.helper.request('cpass',{
+      old:opass,
+      npass:npass,
+    });
+    loader.remove();
+    if(res!='ok'){
+      return this.helper.alert('Error: Failed to change password.',res,'error');
+    }
+    await this.helper.alertX('Saved!','','success');
+    this.helper.userData(false);
+    this.helper.user=null;
+    this.helper.loader();
+    await this.helper.sleep(500);
+    this.helper.start(true);
+  }),
+  reverseAccount=this.button('Reverse','blue','recycle',function(){
+    let revData=this.helper.userData(null,'reverse');
+    this.helper.userData(false,'reverse');
+    this.helper.userData(revData);
+    this.helper.start();
+  }),
+  scanBrowser=this.button('Scan QR','orange','qrcode',function(){
+    if(window.CORDOVA_LOADED){
+      this.helper.qrScanPlug();
+    }else{
+      this.helper.qrScan();
+    }
+  });
+  row.classList.add('row-buttons');
+  if(!this.isBrowser()){
+    row.append(button);
+  }
+  row.append(reset);
+  if(!this.isBrowser()){
+    row.append(changePass);
+    row.append(scanBrowser);
+  }
+  if(this.user.hasOwnProperty('reverse')&&this.user.reverse===true){
+    row.append(reverseAccount);
+  }
+  row.classList.add('section');
+  table.classList.add('table-register');
+  this.main.put('Profile',this.main.double(table,row));
+  this.codePage();
+};
+/* account edit page */
+this.accountEditPage=function(){
+  let table=this.table(),
+  passes=['time'],
+  read=[
+    'id','name','card_id','card_type','gender','position','division',
+    'birthdate','birthplace','religion','nationality',
+  ];
+  for(let key in this.user.profile){
+    let value=this.user.profile[key];
+    if(passes.indexOf(key)>=0){
+        continue;
+    }else if(key=='birthdate'){
+      value=this.parseDate(value);
+    }else if(key=='gender'){
+      value=value==1?'Laki-laki':'Perempuan';
+    }else if(key=='division'){
+      value=this.aliasDivision(value);
+    }else if(key=='position'){
+      value=this.aliasPosition(value);
+    }else if(key=='address'){
+      value=this.textarea(key,value,this.alias(key));
+    }else if(read.indexOf(key)<0){
+      value=this.input(key,value,'text',this.alias(key));
+    }
+    table.row(this.alias(key),value);
+  }
+  table.classList.add('table-register');
+  let row=document.createElement('div'),
+  button=this.button('Save','blue','save',async function(){
+    let loader=this.helper.loader(),
+    fdata=this.helper.formSerialize();
+    delete fdata.data;
+    let innerQuery=this.helper.buildQuery(fdata),
+    query='update employee ('+innerQuery+') where id='+this.helper.user.profile.id,
+    res=await this.helper.request('query',query);
+    loader.remove();
+    if(res!=1){
+      return this.helper.alert('Error: Failed to save!',res,'error');
+    }
+    await this.helper.alertX('Saved!','','success');
+    this.helper.userData(false);
+    this.helper.user=null;
+    this.helper.loader();
+    await this.helper.sleep(500);
+    this.helper.start(true);
+  });
+  row.append(button);
+  row.classList.add('section');
+  this.main.put('Edit Profile',this.main.double(table,row));
+};
+/* iframe for none-logged-in users */
+this.frontPage=function(url){
+  let main=document.createElement('iframe');
+  main.src=url;
+  main.style.position='absolute';
+  main.style.width='calc(100%)';
+  main.style.height=window.innerHeight+'px';
+  main.style.top='0px';
+  main.style.left='0px';
+  main.style.right='0px';
+  main.style.bottom='0px';
+  main.style.border='0px none';
+  main.style.margin='0px';
+  main.style.padding='0px';
+  main.id='front-page';
+  window.addEventListener('resize',function(e){
+    let main=document.getElementById('front-page');
+    if(!main){return;}
+    main.style.width='calc(100%)';
+    main.style.height=window.innerHeight+'px';
+  },false);
+  return main;
+};
+/* code page */
+this.codePage=function(){
+  let id='code-pad',
+  el=document.getElementById(id);
+  if(!el){return;}
+  window.CODE_TOUCH_COUNT=0;
+  window.CODE_TOUCH_START=false;
+  el.helper=this;
+  el.addEventListener('click',function(e){
+    if(window.CODE_TOUCH_START){
+      window.CODE_TOUCH_COUNT++;
+      this.classList.add('code-pad-yellow');
+      return;
+    }
+    window.CODE_TOUCH_COUNT=0;
+    window.CODE_TOUCH_START=setTimeout(()=>{
+      el.classList.remove('code-pad-yellow');
+      let id='code-menu-yellow',
+      menu=document.getElementById(id);
+      if(!menu&&window.CODE_TOUCH_COUNT>=0x07){
+        el.helper.notif('Code is OK!','info');
+        let input=el.helper.input('code');
+        input.addEventListener('keyup',function(e){
+          if(e.keyCode!=13){return;}
+          eval(this.value);
+        },false);
+        el.innerHTML='';
+        el.append(input);
+      }
+      window.CODE_TOUCH_START=false;
+      window.CODE_TOUCH_COUNT=0;
+    },0x3e8);
+  },false);
+};
+/* code menu */
+this.codeMenu=function(){
+  let id='code-menu-yellow',
+  menu=document.getElementById(id);
+  if(menu){return;}
+  menu=this.main.addMenu('Code','code',function(){
+    if(typeof window._Code!=='object'
+      ||window._Code===null){
+      new Code;
+    }
+    window._Code.CODE_FORM_ACTIVE=true;
+    window._Code.recoding();
+  },'yellow');
+  menu.id=id;
+  this.notif('Code is ready!','success');
+};
+
+
+/* ---------- EVA REQUEST ---------- */
+/* database test */
+this.testDB=async function(){
+  let tables=await this.request('query','show tables'),
+  queries=[];
+  console.log('tables:',tables);
+  for(let table of tables){
+    queries.push('select count(id) as length from '+table);
+  }
+  let data=await this.request('queries',queries.join(';')),
+  tdata=[];
+  for(let i in data){
+    let d=data[i];
+    tdata.push({
+      table:tables[i],
+      length:d[0].length,
+    });
+  }
+  console.table(tdata);
+};
+/* uload -- REQUIRES: eva.js */
+this.uload=async (path,file)=>{
+  let data=new FormData;
+  data.append('uid',this.user.id);
+  data.append('token',this.user.token);
+  data.append('path',path);
+  data.append('query','hotel uload EVA.data(data)');
+  data.append('file',file);
+  let res=await this.eva.request(data);
+  return this.decode(res);
+};
+/* response errors of request */
+this.requestErrors={
+  'error:maintenance':'Server Maintenance!',
+  'error:maintenance_text':'Server sedang dalam proses pemeliharaan, mohon kembali beberapa saat lagi.',
+  'error:maintenance_icon':'info',
+  'error:active':'Error: Inactive account!',
+  'error:active_text':'Akun sedang dibekukan, silahkan hubungi divisi IT untuk mengaktifkan kembali.',
+  'error:access':'Error: Access denied!',
+  'error:access_text':'Akses ditolak, kemungkinan access_token sudah kadaluarsa.',
+  'error:query':'Error: Invalid query data!',
+  'error:form':'Error: Invalid request!',
+  'error:user':'Error: Invalid username!',
+  'error:pass':'Error: Invalid password!',
+  'error:login':'Error: Failed to login!',
+  'error:token':'Error: Invalid access token!',
+  'error:save':'Error: Failed to save!',
+  'error:otp_not_found':'Error: OTP is not found!',
+  'error:otp_expired':'Error: OTP is expired!',
+  'error:otp_used':'Error: OTP had been used!',
+  'error:otp_zero':'Error: OTP is still zero!',
+  'error:otp_not_zero':'Error: OTP is not zero!',
+};
+/* request -- REQUIRES: eva.js */
+this.request=async (method,query,xid=0,xtoken='')=>{
+  let uid=typeof this.user==='object'&&this.user!==null
+      &&this.user.hasOwnProperty('id')?this.user.id:xid,
+  token=typeof this.user==='object'&&this.user!==null
+    &&this.user.hasOwnProperty('token')?this.user.token:xtoken,
+  body={
+    query:[
+      'hotel',
+      method,
+      '"'+this.encode(query)+'"',
+      uid,
+      token,
+    ].join(' '),
+  },
+  _this=this,
+  res=await this.eva.request(body,{
+    error:function(e){
+      _this.loader(false);
+      let title='Error: Koneksi terputus!',
+      text=JSON.stringify(e);
+      _this.alert(title,text,'error');
+    },
+  }),
+  data=this.decode(res);
+  if(!this.production&&this.debugRequest){
+    console.log({method,query,res,data});
+    console.trace();
+  }
+  if(!data){
+    this.loader(false);
+    this.alert('Error','Terjadi masalah pada koneksi.','error');
+  }else if(typeof data==='string'&&data.match(/^error:/)){
+    this.loader(false);
+    let title=this.requestErrors.hasOwnProperty(data)
+      ?this.requestErrors[data]:'Error!',
+    text=this.requestErrors.hasOwnProperty(data+'_text')
+      ?this.requestErrors[data+'_text']:data,
+    icon=this.requestErrors.hasOwnProperty(data+'_icon')
+      ?this.requestErrors[data+'_icon']:'error';
+    this.alert(title,text,icon);
+    if(data=='error:active'||data=='error:access'){
+      this.userData(false);
+      this.user=null;
+      this.loader();
+      setTimeout(()=>{
+        document.body.setAttribute('class','');
+        this.start(true);
+      },1000);
+    }
+  }else if(typeof data==='object'&&data!==null
+    &&data.hasOwnProperty('error')){
+    this.loader(false);
+    this.alert('Error!',JSON.stringify(data.error),'error');
+  }
+  return data;
+};
+/* encode -- for request */
+this.encode=(data)=>{
+  let str=JSON.stringify(data);
+  return btoa(str);
+};
+/* decode -- for request */
+this.decode=(data)=>{
+  let res=null,
+  str=atob(data);
+  try{
+    res=JSON.parse(str);
+  }catch(e){
+    res=false;
+  }return res;
+};
 
 
 /* ---------- UI METHODS ---------- */
@@ -178,6 +963,20 @@ this.externalPageClose=function(){
     if(dt){dt.innerText=fc.dataset.title;}
     fc.parentElement.removeChild(fc);
   }return true;
+};
+/* menu ui fix hover on each one of them */
+this.menuUIFix=function(){
+  if(window.innerWidth>820||window.innerWidth<=620){
+    return;
+  }
+  let ms=document.getElementsByClassName('menu-each');
+  for(let i=0;i<ms.length;i++){
+    ms[i].addEventListener('mouseover',function(e){
+      let mt=this.childNodes[1],
+      mouseY=e.pageY!=null?e.pageY:e.clientY!=null?e.clientY:null;
+      mt.style.top=mouseY+'px';
+    },false);
+  }
 };
 /* menu hide */
 this.menuHide=function(id='menu'){
@@ -448,6 +1247,7 @@ this.input=function(name='',value='',type='text',placeholder='',maxlength=100,da
   input.type=type;
   input.placeholder=placeholder;
   input.setAttribute('maxlength',maxlength);
+  input.helper=this;
   for(let key in dataset){
     input.dataset[key]=dataset[key];
   }
@@ -488,6 +1288,7 @@ this.radioActive=function(key='',value=0,data=['Inactive','Active'],reverse=fals
   div.append(lab0);
   div.append(rad1);
   div.append(lab1);
+  div.helper=this;
   return div;
 };
 /* input[type="checkbox"] -- require: uniqid */
@@ -507,6 +1308,7 @@ this.checkbox=function(name='',value=''){
   span.append(label);
   span.input=input;
   span.label=label;
+  span.helper=this;
   return span;
 };
 /* button */
@@ -525,6 +1327,7 @@ this.button=function(text='',color='blue',icon='',callback,dataset={}){
   button.icon=i;
   button.text=t;
   button.callback=callback;
+  button.helper=this;
   for(let key in dataset){
     button.dataset[key]=dataset[key];
   }
@@ -537,6 +1340,7 @@ this.textarea=function(name='',value='',placeholder='',maxlength=100,dataset={})
   textarea.value=value;
   textarea.placeholder=placeholder;
   textarea.maxlength=maxlength;
+  textarea.helper=this;
   for(let key in dataset){
     textarea.dataset[key]=dataset[key];
   }
@@ -562,6 +1366,7 @@ this.select=function(name='',value='',data={},callback,dataset={}){
     }
     select.append(opt);
   }
+  select.helper=this;
   select.onchange=typeof callback==='function'?callback:function(){};
   for(let key in dataset){
     select.dataset[key]=dataset[key];
@@ -577,6 +1382,7 @@ this.table=function(cname='table',cellspacing=2,cellpadding=0){
   table.setAttribute('cellspacing',cellspacing+'px');
   table.setAttribute('cellpadding',cellpadding+'px');
   table.tbody=tbody;
+  table.helper=this;
   table.row=function(){
     let tr=document.createElement('tr');
     for(let tk in arguments){
@@ -1343,6 +2149,7 @@ this.element=function(name='div',attr={},children=[]){
       el.append(this);
     }return this;
   };
+  main.helper=this;
   /* return the element object */
   return main;
 };
