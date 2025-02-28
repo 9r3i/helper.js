@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="en-US" dir="ltr"><head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>9r3i\helper\test</title>
+  <script type="text/javascript">
+    /* error message -- for development only */
+    window.addEventListener('error',function(e){
+      let errorText=[
+        e.message,
+        'URL: '+e.filename,
+        'Line: '+e.lineno+', Column: '+e.colno,
+        'Stack: '+(e.error&&e.error.stack||'(no stack trace)'),
+      ].join('\n');
+      alert(errorText);
+      console.error(errorText);
+    });
+  </script>
+  <!--
+  <script src="https://cdn.jsdelivr.net/npm/@9r3i/helper@1.1.3"></script>
+  -->
+  <script src="../helper.js"></script>
+  <script src="test.js" defer></script>
+</head><body onload="test_start()">
+  <h1 style="text-align:center;">
+    <i class="fa fa-spinner fa-pulse"></i> Loading...
+  </h1>
+</body></html>

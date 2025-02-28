@@ -4,12 +4,12 @@
  * autored by 9r3i (https://github.com/9r3i)
  * started at February 22nd 2025
  */
-;function Helper(){
+;function Helper(config){
 /* set to true before compile to appbase */
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:104,
+  value:115,
   writable:false,
 });
 /* the version */
@@ -21,18 +21,44 @@ Object.defineProperty(this,'version',{
 /* debug all requests -- for development only */
 this.debugRequest=false;
 
+/* helper libraries */
+this.libraries={
+  style:[
+    'css/circle-progress.min.css',
+    'css/font-awesome.min.css',
+    'css/code.min.css',
+    'css/helper.css',
+  ],
+  script:[
+    'js/circle-progress.min.js',
+    'https://cdn.jsdelivr.net/gh/9r3i/eva.js@refs/heads/master/eva.js',
+    'https://cdn.jsdelivr.net/npm/sweetalert2@11',
+    'js/code.min.js',
+    'js/nations.js',
+    'js/qrcode.min.js',
+  ],
+  module:[
+    'https://cdn.jsdelivr.net/npm/@9r3i/qrscanner/qr-scanner.min.js',
+  ],
+};
+this.fnCheck=[
+  'eva',
+  'Code',
+  'QRCode',
+];
+
+/* config */
+this.config=typeof config==='object'&&config!==null?config:{};
+
 
 /* hosts */
 this.hosts={
-  appbase     : 'http://127.0.0.1:9303/api/appbase/appname.app',
-  version     : 'http://127.0.0.1:9303/api/appbase/appversion.txt',
-  eva         : 'http://127.0.0.1:9303/api/eva/',
-  eva_dev     : 'http://127.0.0.1:9304/api/eva/',
-  sweetalert  : 'https://cdn.jsdelivr.net/npm/sweetalert2@11',
-  fontawesome : 'https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css',
-  repo        : 'https://raw.githubusercontent.com/9r3i/helper.js/master/',
-  fonts       : 'https://raw.githubusercontent.com/9r3i/helper.js/master/',
-  lastReport  : 'http://127.0.0.1:9303/dev/report/report.latest.txt',
+  eva     : this.config.hasOwnProperty('evaHost')
+            ?this.config.evaHost:'',
+  eva_dev : this.config.hasOwnProperty('evaDevHost')
+            ?this.config.evaDevHost:'',
+  library : 'https://cdn.jsdelivr.net/npm/@9r3i/helper@'
+            +this.version+'/',
 };
 
 /* user information */
@@ -40,44 +66,110 @@ this.user=null;
 this.eva=null;
 this.dialogPage=null;
 this.IMAGES={
-  'loader.gif':'',
-  'nophoto.png':'',
-  'logo.png':'',
-  'icon-plus.png':'',
-  'icon-error.png':'',
+  'loader.gif':this.hosts.library+'css/images/loader.gif',
+  'nophoto.png':this.hosts.library+'css/images/nophoto.png',
+  'icon-plus.png':this.hosts.library+'css/images/icon-plus.png',
+  'icon-error.png':this.hosts.library+'css/images/icon-error.png',
+  'logo.png':this.config.hasOwnProperty('appLogo')
+    ?this.config.appLogo
+    :this.hosts.library+'css/images/logo.png',
 };
 
 /* apps -- name detail on divisions */
-this.apps=[
-  'unspecified',
-  'account',
-  'admin',
-];
+this.apps=this.config.hasOwnProperty('apps')
+    &&Array.isArray(this.config.apps)
+    &&this.config.apps.indexOf('account')>=0
+  ?this.config.apps:['account'];;
+/* app namespace for eva api library target */
+this.appNS=this.config.hasOwnProperty('appNS')
+  ?this.config.appNS:'helper';
+this.appVersion=this.config.hasOwnProperty('appVersion')
+  ?this.config.appVersion:'';
+/* app base name for client classes prefix name */
+this.appBaseName=this.config.hasOwnProperty('appBaseName')
+  ?this.config.appBaseName:'Helper';
 /* aliases */
-this.appbaseName='Helper';
-this.aliases={};
-this.positions={
-  admin:'Admin',
-};
-this.divisions={
-  unspecified:'Unspecified',
-  admin:'HRD',
-  account:'Profile',
+this.aliases=this.config.hasOwnProperty('aliases')
+    &&typeof this.config.aliases==='object'
+    &&this.config.aliases!==null
+    &&this.config.aliases.hasOwnProperty('app_vendor')
+  ?this.config.aliases
+  :{app_vendor:'Helper App'};
+this.positions=this.config.hasOwnProperty('positions')
+    &&typeof this.config.positions==='object'
+    &&this.config.positions!==null
+  ?this.config.positions:{};
+this.divisions=this.config.hasOwnProperty('divisions')
+    &&typeof this.config.divisions==='object'
+    &&this.config.divisions!==null
+    &&this.config.divisions.hasOwnProperty('account')
+  ?this.config.divisions
+  :{account:'Profile'};
+this.themeColor=this.config.hasOwnProperty('themeColor')
+  ?this.config.themeColor:'#309695';
+
+
+/* response errors of request */
+this.requestErrors={
+  'error:connection':'Error: Connection problem.',
+  'error:connection_break':'Error: Connection has been closed!',
+  'error:maintenance':'Server Maintenance!',
+  'error:maintenance_text':'Please, visit again later.',
+  'error:maintenance_icon':'info',
+  'error:active':'Error: Inactive account!',
+  'error:active_text':'Please, call IT division to re-activate.',
+  'error:access':'Error: Access denied!',
+  'error:access_text':'This might be the access_token has been expired.',
+  'error:query':'Error: Invalid query data!',
+  'error:form':'Error: Invalid request!',
+  'error:user':'Error: Invalid username!',
+  'error:pass':'Error: Invalid password!',
+  'error:login':'Error: Failed to login!',
+  'error:token':'Error: Invalid access token!',
+  'error:save':'Error: Failed to save!',
+  'error:otp_not_found':'Error: OTP is not found!',
+  'error:otp_expired':'Error: OTP is expired!',
+  'error:otp_used':'Error: OTP had been used!',
+  'error:otp_zero':'Error: OTP is still zero!',
+  'error:otp_not_zero':'Error: OTP is not zero!',
 };
 
+/* queries */
+this.helperQueries=[
+  'create database '+[
+    'db='+this.appNS,
+    'user='+this.appNS,
+    'pass=9r3i',
+    'scope=*',
+  ].join('&'),
+  'create table user id=aid()&username=string(100)&passcode=string(100)&privilege=int(2,1)&scope=string(100)&active=int(1,1)&type=string(100)&profile_id=int(10)&position=string(100)',
+  'create table access id=aid()&uid=int(10)&active=int(1,1)&time=time()&token=string(100)&userdata=string(1024)&platform=string(100)',
+  'insert into user username=test&passcode=$2y$12$6ACh72hpv8Eltdm2TI6.D.1OnDEYzwrAJJBvVWn.2n4Bal0fopjRa&privilege=4&type=employee&position=admin&scope=*&profile_id=1&active=1',
+  'create table employee id=aid()&name=string(100)&position=string(100)&time=time()&card_id=string(50)&card_type=string(50)&address=string(256)&birthdate=string(100)&birthplace=string(100)&gender=int(1,0)&phone=string(20)&email=string(100)&religion=string(50)&nationality=string(50)&division=string(100)',
+  'insert into employee name=Test&position=admin&card_id=3204130909090009&card_type=ktp&address=Bekasi&birthplace=Bekasi&birthdate=2009-09-09&gender=1&phone=08123456789&email=test@test.test&religion=Islam&nationality=Indonesia&division=admin',
+];
 
 
 /* initialize as contructor */
 this.init=function(){
-  /* initialize eva */
-  let eva_default_config={
-    host:this.production?this.hosts.eva:this.hosts.eva_dev,
-    apiVersion:'__EVA_VERSION__',
-    token:'__PUBLIC_TOKEN__',
-  },
-  eva_config=localStorage.getItem('eva_config');
-  /* load sweetalert */
-  this.loadScriptURL(this.hosts.sweetalert);
+  /* load libraries module */
+  let module=`
+  import QrScanner from "${this.libraries.module[0]}";
+  window.QrScanner=QrScanner;
+  `;
+  this.loadScriptString(module,'module');
+  /* load libraries style */
+  for(let style of this.libraries.style){
+    let pre=!style.match(/^http/i)?this.hosts.library:'';
+    this.loadStyleURL(pre+style);
+  }
+  /* load libraries script */
+  for(let script of this.libraries.script){
+    let pre=!script.match(/^http/i)?this.hosts.library:'';
+    this.loadScriptURL(pre+script);
+  }
+  /* load icon */
+  this.loadIconURL(this.IMAGES['logo.png']);
   /* return the object */
   return this;
 };
@@ -85,9 +177,15 @@ this.init=function(){
 this.start=async function(app){
   /* check everything is ready */
   let isReady=await this.isEverythingReady();
-  //if(!isReady){return alert('Error: Something is not ready!');}
+  if(!isReady){
+    let text='Error: Something is not ready!',
+    yes=confirm(text+'\nReload now?');
+    document.body.innerHTML=`<h1>${text}</h1>`;
+    if(yes){window.location.reload();}
+    return;
+  }
   /* statusbar */
-  this.statusBar('#7c1111');
+  this.statusBar(this.themeColor);
   /* setup backbutton */
   document.addEventListener("backbutton",e=>{
     e.preventDefault();
@@ -104,24 +202,6 @@ this.start=async function(app){
       return false;
     },false);
   }
-  /* clear body element */
-  document.body.innerHTML='';
-  /* prepare print style */
-  if(typeof ABL_OBJECT==='object'&&ABL_OBJECT!==null&&!Array.isArray(ABL_OBJECT)){
-    for(let style of ABL_OBJECT.data.style){
-      let elStyle=document.createElement('style');
-      elStyle.media='print,screen';
-      elStyle.rel='stylesheet';
-      elStyle.textContent=style;
-      document.head.append(elStyle);
-    }
-  }else{
-    let link=document.createElement('link');
-    link.type='text/css';
-    link.rel='stylesheet';
-    link.href='css/helper'+(this.production?'.min':'')+'.css';
-    document.head.append(link);
-  }
   /* check userdata */
   let user=this.userData();
   if(user){
@@ -134,25 +214,42 @@ this.start=async function(app){
       }
     }
   }
+  /* clear body element */
+  document.body.innerHTML='';
   /* update page */
   this.updatePage();
+  /* initialize eva */
+  let eva_host=this.production?this.hosts.eva:this.hosts.eva_dev,
+  eva_get=eva_host+'?query=helperget.eva/',
+  eva_version=await fetch(eva_get+'version').then(r=>r.text()),
+  eva_token=await fetch(eva_get+'token').then(r=>r.text()),
+  eva_config={
+    host:eva_host,
+    apiVersion:eva_version,
+    token:eva_token,
+  };
+  this.eva=new eva(eva_config);
   /* login page */
   if(!this.isLogin()){
+    /* global helper */
+    let uniqid=this.uniqid('__helper');
+    window[uniqid]=this;
     window.appPage=function(){
-      _Helper.start(true);
+      this[uniqid].start(true);
     };
-    this.statusBar('#7c1111');
-    let main=app?this.loginPage():this.frontPage();
+    this.statusBar(this.themeColor);
+    let main=app?this.loginPage()
+      :this.frontPage(this.config.frontPage);
     document.body.append(main);
     return false;
   }
   /* load basic ui */
-  this.main=this.basicUI(this.alias('app_vendor'));
+  this.main=this.basicUI(this.alias('app_vendor'),this.appVersion);
   document.body.append(this.main);
   /* movable menu */
   this.menuMovable();
   /* set division header */
-  let division=typeof app==='string'?app:this.user.profile.division,
+  let division=typeof app==='string'?app:this.user.position,
   headerText=this.divisions.hasOwnProperty(division)?this.divisions[division]:division;
   this.main.bodyHeader.innerText=headerText;
   this.main.bodyHeader.dataset.scope=JSON.stringify(this.user.scope);
@@ -194,15 +291,15 @@ this.start=async function(app){
   };
   /* ---------- APPLICATION (per division) ---------- */
   let menus=[],
-  appDiv=typeof app==='string'?app:this.user.profile.division,
+  appDiv=typeof app==='string'?app:this.user.position,
   appClass=this.getAppClassName(appDiv);
   if(typeof window[appClass]==='function'&&this.apps.indexOf(appDiv)>=0){
     if(this.user.scope.indexOf(appDiv)>=0
       &&this.user.privilege>=4){
-      let _AppObject=new window[appClass];
-      menus=typeof _AppObject.menus==='function'?_AppObject.menus():[];
-      if(typeof _AppObject.dashboard==='function'){
-        _AppObject.dashboard();
+      let appObject=new window[appClass](this);
+      menus=typeof appObject.menus==='function'?appObject.menus():[];
+      if(typeof appObject.dashboard==='function'){
+        appObject.dashboard();
       }else{
         this.accountPage();
       }
@@ -337,7 +434,7 @@ this.qrCheckOTP=async function(){
   if(!body||!body.dataset.hasOwnProperty('otp')
     ||body.dataset.otp==''){return;}
   let host=this.production?this.hosts.eva:this.hosts.eva_dev,
-  urlCheck=host+'hotel/otp/check/'+body.dataset.otp,
+  urlCheck=host+this.appNS+'/otp/check/'+body.dataset.otp,
   res=await fetch(urlCheck,{mode:'cors'}).then(r=>r.text());
   if(res.toString().match(/^error/i)){
     return this.qrCheckOTP();
@@ -768,32 +865,10 @@ this.uload=async (path,file)=>{
   data.append('uid',this.user.id);
   data.append('token',this.user.token);
   data.append('path',path);
-  data.append('query','hotel uload EVA.data(data)');
+  data.append('query',this.appNS+' uload EVA.data(data)');
   data.append('file',file);
   let res=await this.eva.request(data);
   return this.decode(res);
-};
-/* response errors of request */
-this.requestErrors={
-  'error:maintenance':'Server Maintenance!',
-  'error:maintenance_text':'Server sedang dalam proses pemeliharaan, mohon kembali beberapa saat lagi.',
-  'error:maintenance_icon':'info',
-  'error:active':'Error: Inactive account!',
-  'error:active_text':'Akun sedang dibekukan, silahkan hubungi divisi IT untuk mengaktifkan kembali.',
-  'error:access':'Error: Access denied!',
-  'error:access_text':'Akses ditolak, kemungkinan access_token sudah kadaluarsa.',
-  'error:query':'Error: Invalid query data!',
-  'error:form':'Error: Invalid request!',
-  'error:user':'Error: Invalid username!',
-  'error:pass':'Error: Invalid password!',
-  'error:login':'Error: Failed to login!',
-  'error:token':'Error: Invalid access token!',
-  'error:save':'Error: Failed to save!',
-  'error:otp_not_found':'Error: OTP is not found!',
-  'error:otp_expired':'Error: OTP is expired!',
-  'error:otp_used':'Error: OTP had been used!',
-  'error:otp_zero':'Error: OTP is still zero!',
-  'error:otp_not_zero':'Error: OTP is not zero!',
 };
 /* request -- REQUIRES: eva.js */
 this.request=async (method,query,xid=0,xtoken='')=>{
@@ -803,7 +878,7 @@ this.request=async (method,query,xid=0,xtoken='')=>{
     &&this.user.hasOwnProperty('token')?this.user.token:xtoken,
   body={
     query:[
-      'hotel',
+      this.appNS,
       method,
       '"'+this.encode(query)+'"',
       uid,
@@ -814,7 +889,9 @@ this.request=async (method,query,xid=0,xtoken='')=>{
   res=await this.eva.request(body,{
     error:function(e){
       _this.loader(false);
-      let title='Error: Koneksi terputus!',
+      let ertype='error:connection_break',
+      title=_this.requestErrors.hasOwnProperty(ertype)
+        ?_this.requestErrors[ertype]:'Error!',
       text=JSON.stringify(e);
       _this.alert(title,text,'error');
     },
@@ -826,7 +903,10 @@ this.request=async (method,query,xid=0,xtoken='')=>{
   }
   if(!data){
     this.loader(false);
-    this.alert('Error','Terjadi masalah pada koneksi.','error');
+    let ertype='error:connection',
+    title=this.requestErrors.hasOwnProperty(ertype)
+      ?this.requestErrors[ertype]:'Error!';
+    this.alert('Error',title,'error');
   }else if(typeof data==='string'&&data.match(/^error:/)){
     this.loader(false);
     let title=this.requestErrors.hasOwnProperty(data)
@@ -1039,7 +1119,7 @@ this.menuMovable=function(id='menu'){
   },false);
 };
 /* basic ui -- require: IMAGES */
-this.basicUI=function(htext='Helper'){
+this.basicUI=function(htext='Helper',hversion=''){
   let main=document.createElement('main'),
   header=document.createElement('div'),
   body=document.createElement('div'),
@@ -1078,7 +1158,7 @@ this.basicUI=function(htext='Helper'){
   header.classList.add('header');
   header.id='header';
   header.dataset.text=htext;
-  header.dataset.version='v'+this.version+(this.production?'':'-dev');
+  header.dataset.version=hversion;
   mbutton.classList.add('menu-button');
   mbutton.id='menu-button';
   mb1.classList.add('menu-button-strip');
@@ -1088,6 +1168,7 @@ this.basicUI=function(htext='Helper'){
   menu.id='menu';
   mheader.classList.add('menu-header');
   mheader.id='menu-header';
+  mheader.dataset.version='Helper v'+this.version+(this.production?'':'-dev');
   body.classList.add('body');
   body.id='body';
   bcontent.classList.add('body-content');
@@ -1931,6 +2012,15 @@ this.isEverythingReady=async function(){
     cp.close();
     return res;
   }
+  /* functions check */
+  for(let fn of this.fnCheck){
+    res=await this.isFunctionReady(fn);
+    if(!res){break;}
+  }
+  if(!res){
+    cp.close();
+    return res;
+  }
   /* perform fake loader then close it */
   await this.fakeLoaderX(function(e){
     cp.loading(e);
@@ -1990,6 +2080,17 @@ this.isDocumentReady=async function(){
     await this.sleep(10);
   }return res;
 };
+/* is function ready */
+this.isFunctionReady=async function(fn){
+  let res=false;
+  for(let i of this.range(1,100)){
+    if(typeof window[fn]==='function'){
+      res=true;
+      break;
+    }
+    await this.sleep(10);
+  }return res;
+};
 /* is browser app -- const HELPER_BROWSER_APP */
 this.isBrowser=function(){
   if(typeof HELPER_BROWSER_APP==='boolean'
@@ -2015,10 +2116,10 @@ this.alias=function(text=''){
   let aliases=typeof this.aliases==='object'&&this.aliases!==null?this.aliases:{};
   return aliases.hasOwnProperty(text)?aliases[text]:text;
 };
-/* app name to app function -- require: appbaseName */
+/* app name to app function -- require: appBaseName */
 this.getAppClassName=function(name=''){
   let an=name.split(/[^a-z]+/ig),
-  ar=[this.appbaseName];
+  ar=[this.appBaseName];
   for(let d of an){
     ar.push(d.substring(0,1).toUpperCase());
     ar.push(d.substring(1).replace(/[^a-z]+/ig,''));
@@ -2028,6 +2129,120 @@ this.getAppClassName=function(name=''){
 
 
 /* ---------- STAND-ALONE METHODS ---------- */
+
+
+/* ---------- STAND-ALONE METHODS ---------- */
+/* ini object */
+this.ini=function(){
+  return {
+    value:function(str){
+      if(str===null){
+        return 'null';
+      }else if(str===false){
+        return 'false';
+      }else if(str===true){
+        return 'true';
+      }
+      str=str.toString();
+      if(!str.match(/"|\n/g)){
+        return str;
+      }
+      return '"'+str
+        .replace(/\n/g,'\\n')
+        .replace(/"/g,'\\"')
+        +'"';
+    },
+    /* build an ini string */
+    build:function(data,nested){
+      if(typeof data!=='object'||data===null
+        ||Array.isArray(data)){
+        return;
+      }
+      let res=[];
+      for(let k in data){
+        let v=data[k],
+        col=k+'='+this.value(v);
+        if(nested){
+          col='['+k+']\n';
+          for(let i in v){
+            col+=i+'='+this.value(v[i]);
+          }
+        }res.push(col);
+      }return res.join('\n');
+    },
+    /* parse without section */
+    parseNoSection:function(data){
+      if(typeof data!=="string"){return {};}
+      let ln=data.split(/\r\n|\r|\n/g),
+      res={};
+      for(let p of ln){
+        let m=p.match(/^\s*([^=]+?)\s*=\s*(.*?)\s*$/);
+        if(!m){continue;}
+        res[m[1]]=m[2].match(/^"/)&&m[2].match(/"$/)
+          ?m[2].substr(1,m[2].length-2)
+            .replace(/\\"/g,'"')
+            .replace(/\\n/g,'\n')
+          :m[2];
+      }return res;
+    },
+    /** 
+     * ini.js
+     * ~ parse ini from string (nested only)
+     * ~ this could be parse multiline ini values
+     * @parameters:
+      *   data = string of ini data string
+        ** actually this is my old code, wrote 5 years ago
+        ** started at november 18th 2017
+        ** update at september 7th 2018
+     */
+    parse:function(data){
+      if(typeof data!=="string"){return;}
+      let ex=data.split(/\r\n|\r|\n/g);
+      let res={},store='',index='',pin='';
+      for(let i in ex){
+        if(ex[i]==''&&index==''){continue;}
+        else if(ex[i].match(/^;/g)){continue;}
+        else if(ex[i].match(/^\[(.*)\]/ig)){
+          pin=ex[i].replace(/^\[/ig,'').replace(/\]\s*$/ig,'');
+          res[pin]={};
+        }else if(ex[i].match(/^.+=\s*/ig)&&index==''){
+          let mt=ex[i].match(/^(.+)=\s*"(.*)"\s*$/ig);
+          let mi=ex[i].match(/^[^=]+/ig);
+          if(mt&&mi){
+            index=mi[0].replace(/^\s+|\s+$/ig,'');
+            res[pin][index]=mt[0].substr(mi[0].length).replace(/^\s*=\s*"|\s*"\s*$/ig,'');
+            index='';
+            continue;
+          }
+          let exi=ex[i].match(/^.+=\s*/ig);
+          if(mi){
+            index=mi[0].replace(/^\s+|\s+$/ig,'');
+          }else{
+            index=exi[0].replace(/=\s*$/ig,'').replace(/^\s+|\s+$/ig,'');
+          }
+          exi=ex[i].replace(/^.+=\s*/ig,'');
+          if(exi.match(/^".*"\s*$/ig)){
+            res[pin][index]=exi.substr(1).replace(/"\s*$/ig,'');
+            index='';
+          }else if(exi.match(/^"/ig)){
+            store=exi.substr(1)+'\r\n';
+          }else{
+            if(typeof res[pin]==='undefined'){continue;}
+            res[pin][index]=exi.replace(/^\s+|\s+$/ig,'');
+            index='';
+          }exi=null;
+        }else if(ex[i].match(/"\s*$/ig)&&index!==''){
+          if(typeof res[pin]==='undefined'){continue;}
+          store+=ex[i].replace(/"\s*$/ig,'')+'\r\n';
+          res[pin][index]=store;
+          store='',index='';
+        }else if(index!==''){
+          store+=ex[i]+'\r\n';
+        }
+      }return res;
+    },
+  };
+};
 /* get grand total from each price and count -- require: formSerialize */
 this.getGrandTotal=function(){
   let fdata=this.formSerialize(true),
@@ -2168,7 +2383,7 @@ this.downloadJSON=function(data,out='data'){
 /* audio play -- search for window.AUDIOS first */
 this.audioPlay=function(url){
   return new Promise(function(resolve,reject){
-    var audio=new Audio();
+    let audio=new Audio();
     audio.preload="auto";
     audio.autoplay=true;
     audio.onerror=reject;
@@ -2254,10 +2469,19 @@ this.range=function(s,t){
     r.push(i);
   }return r;
 };
+/* load script by string */
+this.loadScriptString=function(str,type='text/javascript'){
+  let scr=document.createElement('script');
+  scr.textContent=str;
+  scr.type=type;
+  document.head.append(scr);
+  return scr;
+};
 /* load script by url */
-this.loadScriptURL=function(url){
+this.loadScriptURL=function(url,type='text/javascript'){
   let scr=document.createElement('script');
   scr.src=url;
+  scr.type=type;
   document.head.append(scr);
   return scr;
 };
@@ -2265,7 +2489,17 @@ this.loadScriptURL=function(url){
 this.loadStyleURL=function(url){
   let scr=document.createElement('link');
   scr.href=url;
-  src.rel='stylesheet';
+  scr.rel='stylesheet';
+  scr.media='print,screen';
+  document.head.append(scr);
+  return scr;
+};
+/* load icon by url */
+this.loadIconURL=function(url,type='image/png'){
+  let scr=document.createElement('link');
+  scr.href=url;
+  scr.rel='icon';
+  scr.type=type;
   document.head.append(scr);
   return scr;
 };
