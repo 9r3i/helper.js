@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:115,
+  value:116,
   writable:false,
 });
 /* the version */
@@ -119,7 +119,7 @@ this.requestErrors={
   'error:active':'Error: Inactive account!',
   'error:active_text':'Please, call IT division to re-activate.',
   'error:access':'Error: Access denied!',
-  'error:access_text':'This might be the access_token has been expired.',
+  'error:access_text':'This might be access_token has been expired.',
   'error:query':'Error: Invalid query data!',
   'error:form':'Error: Invalid request!',
   'error:user':'Error: Invalid username!',
@@ -178,12 +178,23 @@ this.start=async function(app){
   /* check everything is ready */
   let isReady=await this.isEverythingReady();
   if(!isReady){
-    let text='Error: Something is not ready!',
-    yes=confirm(text+'\nReload now?');
-    document.body.innerHTML=`<h1>${text}</h1>`;
-    if(yes){window.location.reload();}
+    let limit=13,
+    ratt=localStorage.getItem('reload-attempt'),
+    att=ratt?parseInt(ratt,10):0,
+    text='Error: Something is not ready!'
+      +'<br />Attempted: '+att+'<br />'
+      +(att<5?'App will reload at':'Too many attempts');
+    document.body.innerHTML=`<h2>${text}</h2>`;
+    if(att>=5){return;}
+    for(let i=0;i<=limit;i++){
+      let second=limit-i;
+      document.body.innerHTML=`<h2>${text} ${second}s</h2>`;
+      await this.sleep(1000);
+    }att++;
+    localStorage.setItem('reload-attempt',att);
+    window.location.reload();
     return;
-  }
+  }localStorage.removeItem('reload-attempt');
   /* statusbar */
   this.statusBar(this.themeColor);
   /* setup backbutton */
@@ -449,7 +460,7 @@ this.qrOauth=async function(otp=''){
   }return true;
 };
 this.qrScan=async function(){
-  let dialog=await this.dialogPage(),
+  let dialog=await this.dialog(),
   button=this.button('','red','stop',function(){
     if(this.dataset.state=='Stop'){
       this.scanner.stop();
@@ -1869,7 +1880,7 @@ this.alert=(title='',text='',icon='',cb)=>{
     title:title,
     text:text,
     icon:icon,
-    confirmButtonColor:'#303030',
+    confirmButtonColor:'#309695',
     preConfirm:async (result)=>{
       return cb(result);
     },
@@ -1898,7 +1909,7 @@ this.prompt=(title,text,cb,type='text',obutton='OK')=>{
     cancelButtonText:'Cancel',
     cancelButtonColor:'#963030',
     confirmButtonText:obutton,
-    confirmButtonColor:'#303030',
+    confirmButtonColor:'#309695',
     showLoaderOnConfirm:true,
     allowOutsideClick:()=>!Swal.isLoading(),
     preConfirm:async (result)=>{
@@ -1924,7 +1935,7 @@ this.confirm=(title,text,cb)=>{
     cancelButtonText:'No',
     cancelButtonColor:'#963030',
     confirmButtonText:'Yes',
-    confirmButtonColor:'#303030',
+    confirmButtonColor:'#309695',
   }).then(result=>{
     return cb(result.isConfirmed?true:false);
   });
