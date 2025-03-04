@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:118,
+  value:119,
   writable:false,
 });
 /* the version */
@@ -88,6 +88,8 @@ this.appVersion=this.config.hasOwnProperty('appVersion')
 /* app base name for client classes prefix name */
 this.appBaseName=this.config.hasOwnProperty('appBaseName')
   ?this.config.appBaseName:'Helper';
+this.themeColor=this.config.hasOwnProperty('themeColor')
+  ?this.config.themeColor:'#309695';
 /* aliases */
 this.aliases=this.config.hasOwnProperty('aliases')
     &&typeof this.config.aliases==='object'
@@ -105,8 +107,6 @@ this.divisions=this.config.hasOwnProperty('divisions')
     &&this.config.divisions.hasOwnProperty('account')
   ?this.config.divisions
   :{account:'Profile'};
-this.themeColor=this.config.hasOwnProperty('themeColor')
-  ?this.config.themeColor:'#309695';
 
 
 /* response errors of request */
@@ -341,8 +341,6 @@ this.start=async function(app){
   },false);
   this.menuUIFix();
 };
-
-
 
 
 /* ---------- PAGES ---------- */
