@@ -3,41 +3,6 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>9r3i\helper\test\front</title>
-  <script type="text/javascript">
-    /* error message -- for development only */
-    window.addEventListener('error',function(e){
-      let errorText=[
-        e.message,
-        'URL: '+e.filename,
-        'Line: '+e.lineno+', Column: '+e.colno,
-        'Stack: '+(e.error&&e.error.stack||'(no stack trace)'),
-      ].join('\n');
-      alert(errorText);
-      console.error(errorText);
-    });
-  </script>
+  <script src="front.js" defer></script>
 </head><body>
-  <h1>this is front page</h1>
-  <button onclick="parent.appPage()">Login</button>
-<script>
-  let el=document.createElement('p'),
-  pre=document.createElement('pre'),
-  pr=document.createElement('pre'),
-  keys=Object.keys(parent),
-  uniqid=false;
-  for(let key of keys){
-    if(key.match(/^__helper/)){
-      uniqid=key;
-      break;
-    }
-  }
-  if(uniqid){
-    el.innerText=`Helper version ${parent[uniqid].version}`;
-    document.body.append(el);
-    pr.innerText=uniqid;
-    document.body.append(pr);
-    pre.innerText=parent[uniqid].likeJSON(parent[uniqid],3);
-    document.body.append(pre);
-  }
-</script>
 </body></html>

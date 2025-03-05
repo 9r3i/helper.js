@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:119,
+  value:120,
   writable:false,
 });
 /* the version */
@@ -2039,7 +2039,7 @@ this.isCordovaReady=async function(){
     await this.sleep(50);
   }return res;
 };
-/* is swal ready */
+/* is swal ready -- 10s */
 this.isSwalReady=async function(){
   let res=false;
   for(let i of this.range(1,200)){
@@ -2050,7 +2050,7 @@ this.isSwalReady=async function(){
     await this.sleep(50);
   }return res;
 };
-/* is circle progress ready */
+/* is circle progress ready -- 5s */
 this.isCircleProgressReady=async function(){
   let res=false;
   for(let i of this.range(1,100)){
@@ -2058,10 +2058,10 @@ this.isCircleProgressReady=async function(){
       res=true;
       break;
     }
-    await this.sleep(10);
+    await this.sleep(50);
   }return res;
 };
-/* is document ready */
+/* is document ready -- 1s */
 this.isDocumentReady=async function(){
   let res=false;
   for(let i of this.range(1,100)){
@@ -2073,7 +2073,7 @@ this.isDocumentReady=async function(){
     await this.sleep(10);
   }return res;
 };
-/* is function ready */
+/* is function ready -- 1s */
 this.isFunctionReady=async function(fn){
   let res=false;
   for(let i of this.range(1,100)){

@@ -1,3 +1,5 @@
+
+
 async function test_start(){
   let config={
     appNS:'test',
@@ -67,3 +69,17 @@ this.dashboard=function(){
   profile_id: 1
   position: admin
  */
+
+
+    /* error message -- for development only */
+    window.addEventListener('error',function(e){
+      let errorText=[
+        e.message,
+        'URL: '+e.filename,
+        'Line: '+e.lineno+', Column: '+e.colno,
+        'Stack: '+(e.error&&e.error.stack||'(no stack trace)'),
+      ].join('\n');
+      alert(errorText);
+      console.error(errorText);
+    });
+
