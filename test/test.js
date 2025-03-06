@@ -1,4 +1,4 @@
-
+test_start();
 
 async function test_start(){
   let config={
@@ -24,16 +24,62 @@ async function test_start(){
       'account',
       'admin',
     ],
-    
+    firebaseConfig:{
+      apiKey: "AIzaSyDOAM2pxlFgj-feGalpef8G0IttI-bIWy4",
+      authDomain: "helper-62fa0.firebaseapp.com",
+      projectId: "helper-62fa0",
+      storageBucket: "helper-62fa0.firebasestorage.app",
+      messagingSenderId: "312651149644",
+      appId: "1:312651149644:web:35adabd62d2904c6cc5fe9",
+      measurementId: "G-SW6EK11CJ6",
+      databaseURL: "https://helper-62fa0-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    },
+    firebaseUser:{
+      email:'aa.kasep@gmail.com',
+      passcode:'AaGanteng',
+    },
   };
-  let app=new Helper(config);
+  document.body.innerHTML='';
+  let app=new Helper(config),
+  h1=app.element('h1').appendTo(document.body);
+  h1.style.textAlign='center';
+  h1.html('<i class="fa fa-spinner fa-pulse"></i> Loading...<br />');
+  app.loadProgress=app.element('progress').appendTo(h1);
   //app.userData(false);
-  app.start();
+  await app.start();
   //await app.sleep(100);
   //app.alert('Helper v'+app.version);
   //await app.fakeLoaderZ();
   //app.alert('QrScanner: '+(typeof QrScanner));
 }
+
+async function init(){
+  
+/* initialize */
+const fb=new Firebase(config.firebaseConfig);
+pre(fb);
+
+/* login and logout */
+const log=await fb.login('aa.kasep@gmail.com','AaGanteng');
+//await fb.logout();
+pre(log);
+
+/* realtime database set and get */
+const post={
+  id:101,
+  title:'test posting lagi deh',
+  content:'test content lagi dan lagi',
+  time:(new Date).getTime(),
+};
+const ins=await fb.set('posts',post.id,post);
+pre(ins);
+
+const sel=await fb.get('posts','');
+pre(sel);
+
+}
+
+
 
 ;function TestAdmin(helper){
 this.helper=helper;
@@ -50,9 +96,11 @@ this.menus=function(){
     },
   ];
 };
-this.dashboard=function(){
-  let text=this.helper.likeJSON(this.helper,3);
-  this.helper.main.put('Dashboard','<pre style="white-space:pre-wrap;">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n'+text+'</pre>');
+this.dashboard=async function(){
+  let text=this.helper.likeJSON(this.helper,3),
+  nol='',
+  post=await this.helper.firebase.get('posts',101);
+  this.helper.main.put('Dashboard','<pre style="white-space:pre-wrap;">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n'+nol+'\n\n'+this.helper.likeJSON(post)+'</pre>');
 };
 };
 

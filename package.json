@@ -1,6 +1,6 @@
 {
   "name": "@9r3i/helper",
-  "version": "1.2.0",
+  "version": "1.2.3",
   "description": "helper.js",
   "main": "helper.js",
   "browser": "helper.js",

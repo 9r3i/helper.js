@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:120,
+  value:123,
   writable:false,
 });
 /* the version */
@@ -39,13 +39,26 @@ this.libraries={
   ],
   module:[
     'https://cdn.jsdelivr.net/npm/@9r3i/qrscanner/qr-scanner.min.js',
+    'https://9r3i.github.io/firebase-moduler/modules/Firebase.js',
+    'https://9r3i.github.io/firebase-moduler/modules/MFirebase/MFirebase.js',
   ],
 };
 this.fnCheck=[
   'eva',
   'Code',
   'QRCode',
+  'Firebase',
+  'MFirebase',
 ];
+/**
+ * rules for realtime database
+{
+  "rules": {
+    ".read": true,
+    ".write": "auth !== null ? true : false"
+  }
+}
+ */
 
 /* config */
 this.config=typeof config==='object'&&config!==null?config:{};
@@ -63,6 +76,7 @@ this.hosts={
 
 /* user information */
 this.user=null;
+this.firebase=null;
 this.eva=null;
 this.dialogPage=null;
 this.IMAGES={
@@ -109,30 +123,6 @@ this.divisions=this.config.hasOwnProperty('divisions')
   :{account:'Profile'};
 
 
-/* response errors of request */
-this.requestErrors={
-  'error:connection':'Error: Connection problem.',
-  'error:connection_break':'Error: Connection has been closed!',
-  'error:maintenance':'Server Maintenance!',
-  'error:maintenance_text':'Please, visit again later.',
-  'error:maintenance_icon':'info',
-  'error:active':'Error: Inactive account!',
-  'error:active_text':'Please, call IT division to re-activate.',
-  'error:access':'Error: Access denied!',
-  'error:access_text':'This might be access_token has been expired.',
-  'error:query':'Error: Invalid query data!',
-  'error:form':'Error: Invalid request!',
-  'error:user':'Error: Invalid username!',
-  'error:pass':'Error: Invalid password!',
-  'error:login':'Error: Failed to login!',
-  'error:token':'Error: Invalid access token!',
-  'error:save':'Error: Failed to save!',
-  'error:otp_not_found':'Error: OTP is not found!',
-  'error:otp_expired':'Error: OTP is expired!',
-  'error:otp_used':'Error: OTP had been used!',
-  'error:otp_zero':'Error: OTP is still zero!',
-  'error:otp_not_zero':'Error: OTP is not zero!',
-};
 
 /* initialize as contructor */
 this.init=function(){
@@ -140,6 +130,10 @@ this.init=function(){
   let module=`
   import QrScanner from "${this.libraries.module[0]}";
   window.QrScanner=QrScanner;
+  import { Firebase } from "${this.libraries.module[1]}";
+  window.Firebase=window.Firebase||Firebase;
+  import { MFirebase } from "${this.libraries.module[2]}";
+  window.MFirebase=window.MFirebase||MFirebase;
   `;
   this.loadScriptString(module,'module');
   /* load libraries style */
@@ -162,17 +156,17 @@ this.start=async function(app){
   /* check everything is ready */
   let isReady=await this.isEverythingReady();
   if(!isReady){
-    let limit=13,
+    let limit=9,
     ratt=localStorage.getItem('reload-attempt'),
     att=ratt?parseInt(ratt,10):0,
-    text='Error: Something is not ready!'
-      +'<br />Attempted: '+att+'<br />'
-      +(att<5?'App will reload at':'Too many attempts');
-    document.body.innerHTML=`<h2>${text}</h2>`;
-    if(att>=5){return;}
+    text='Error: Something is not ready!<br />'
+      +'Attempted: '+att+'/3<br />'
+      +(att<3?'App will reload at':'Too many attempts');
+    document.body.innerHTML=`<p>${text}</p>`;
+    if(att>=3){return;}
     for(let i=0;i<=limit;i++){
       let second=limit-i;
-      document.body.innerHTML=`<h2>${text} ${second}s</h2>`;
+      document.body.innerHTML=`<p>${text} ${second}s</p>`;
       await this.sleep(1000);
     }att++;
     localStorage.setItem('reload-attempt',att);
@@ -213,6 +207,11 @@ this.start=async function(app){
   document.body.innerHTML='';
   /* update page */
   this.updatePage();
+  /* initialize firebase */
+  this.firebase=new Firebase(this.config.firebaseConfig);
+  /**/
+  let fbUser=await this.firebase.login('aa.kasep@gmail.com','AaGanteng');
+  alert(this.likeJSON(fbUser,2));
   /* initialize eva */
   let eva_host=this.production?this.hosts.eva:this.hosts.eva_dev,
   eva_get=eva_host+'?query=helperget.eva/',
@@ -883,8 +882,7 @@ this.request=async (method,query,xid=0,xtoken='')=>{
     error:function(e){
       _this.loader(false);
       let ertype='error:connection_break',
-      title=_this.requestErrors.hasOwnProperty(ertype)
-        ?_this.requestErrors[ertype]:'Error!',
+      title=_this.requestError(ertype),
       text=JSON.stringify(e);
       _this.alert(title,text,'error');
     },
@@ -897,17 +895,13 @@ this.request=async (method,query,xid=0,xtoken='')=>{
   if(!data){
     this.loader(false);
     let ertype='error:connection',
-    title=this.requestErrors.hasOwnProperty(ertype)
-      ?this.requestErrors[ertype]:'Error!';
+    title=this.requestError(ertype);
     this.alert('Error',title,'error');
   }else if(typeof data==='string'&&data.match(/^error:/)){
     this.loader(false);
-    let title=this.requestErrors.hasOwnProperty(data)
-      ?this.requestErrors[data]:'Error!',
-    text=this.requestErrors.hasOwnProperty(data+'_text')
-      ?this.requestErrors[data+'_text']:data,
-    icon=this.requestErrors.hasOwnProperty(data+'_icon')
-      ?this.requestErrors[data+'_icon']:'error';
+    let title=this.requestError(data),
+    text=this.requestError(data+'_text'),
+    icon=this.requestError(data+'_icon');
     this.alert(title,text,icon);
     if(data=='error:active'||data=='error:access'){
       this.userData(false);
@@ -939,6 +933,33 @@ this.decode=(data)=>{
   }catch(e){
     res=false;
   }return res;
+};
+/* response errors of request */
+this.requestError=function(key=''){
+  let def={
+    'error:connection':'Error: Connection problem.',
+    'error:connection_break':'Error: Connection has been closed!',
+    'error:maintenance':'Server Maintenance!',
+    'error:maintenance_text':'Please, visit again later.',
+    'error:maintenance_icon':'info',
+    'error:active':'Error: Inactive account!',
+    'error:active_text':'Please, call IT division to re-activate.',
+    'error:access':'Error: Access denied!',
+    'error:access_text':'This might be access_token has been expired.',
+    'error:query':'Error: Invalid query data!',
+    'error:form':'Error: Invalid request!',
+    'error:user':'Error: Invalid username!',
+    'error:pass':'Error: Invalid password!',
+    'error:login':'Error: Failed to login!',
+    'error:token':'Error: Invalid access token!',
+    'error:save':'Error: Failed to save!',
+    'error:otp_not_found':'Error: OTP is not found!',
+    'error:otp_expired':'Error: OTP is expired!',
+    'error:otp_used':'Error: OTP had been used!',
+    'error:otp_zero':'Error: OTP is still zero!',
+    'error:otp_not_zero':'Error: OTP is not zero!',
+  };
+  return def.hasOwnProperty(key)?def[key]:key;
 };
 
 
@@ -1984,12 +2005,18 @@ this.fakeLoader=function(cb,dl,i=0){
 };
 /* is everything ready -- with loader */
 this.isEverythingReady=async function(){
+  /* loaded variable */
+  let progress=this.loadProgress||{};
+  progress.max=4+this.fnCheck.length;
+  progress.value=0;
   /* document */
   let res=await this.isDocumentReady();
   if(!res){return res;}
+  progress.value++;
   /* circle progress */
   res=await this.isCircleProgressReady();
   if(!res){return res;}
+  progress.value++;
   /* open circle progress */
   let cp=new CircleProgress;
   cp.open();
@@ -1999,16 +2026,19 @@ this.isEverythingReady=async function(){
     cp.close();
     return res;
   }
+  progress.value++;
   /* cordova */
   res=await this.isCordovaReady();
   if(!res){
     cp.close();
     return res;
   }
+  progress.value++;
   /* functions check */
   for(let fn of this.fnCheck){
     res=await this.isFunctionReady(fn);
     if(!res){break;}
+    progress.value++;
   }
   if(!res){
     cp.close();
@@ -2019,6 +2049,7 @@ this.isEverythingReady=async function(){
     cp.loading(e);
   },0);
   cp.close();
+  delete this.loadProgress;
   /* return the result */
   return res;
 };
@@ -2385,7 +2416,7 @@ this.audioPlay=function(url){
   });
 };
 /* parse date and time -- indonesia */
-this.parseDatetime=function(value,format='id-ID'){
+this.parseDatetime=function(value,format='en-US'){
   let date=new Date(value),
   options={
     weekday:'long',
@@ -2398,7 +2429,7 @@ this.parseDatetime=function(value,format='id-ID'){
   return date.toLocaleDateString(format,options);
 };
 /* parse date -- default: indonesia */
-this.parseDate=function(value,format='id-ID'){
+this.parseDate=function(value,format='en-US'){
   value=value?value:(new Date).getTime();
   let date=new Date(value),
   options={
@@ -2410,11 +2441,11 @@ this.parseDate=function(value,format='id-ID'){
   return date.toLocaleDateString(format,options);
 };
 /* parse nominal -- default: IDR (indonesian rupiah) */
-this.parseNominal=function(nominal=0,format='id-ID',currency='IDR'){
+this.parseNominal=function(nominal=0,format='en-US',currency='USD',decimal=0){
   let money=new Intl.NumberFormat(format,{
     style:'currency',
     currency:currency,
-    maximumFractionDigits:0,
+    maximumFractionDigits:decimal,
   });
   return money.format(nominal);
 };

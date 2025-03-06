@@ -25,7 +25,17 @@ if(helper){
   helper.element('pre')
     .text(helper.likeJSON(helper,3))
     .appendTo(document.body);
-  
+    
+
+}
+
+
+function pre(s,l){
+  let pr=document.createElement('pre');
+  pr.style.whiteSpace='pre-wrap';
+  pr.innerText=[JSON.stringify(s),JSON.stringify(l)].join('\n\n');
+  document.body.append(pr);
+  console.log(s,l);
 }
 
 /* get helper */
