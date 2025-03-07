@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:123,
+  value:127,
   writable:false,
 });
 /* the version */
@@ -22,7 +22,7 @@ Object.defineProperty(this,'version',{
 this.debugRequest=false;
 
 /* helper libraries */
-this.libraries={
+const LIBRARIES={
   style:[
     'css/circle-progress.min.css',
     'css/font-awesome.min.css',
@@ -31,7 +31,7 @@ this.libraries={
   ],
   script:[
     'js/circle-progress.min.js',
-    'https://cdn.jsdelivr.net/gh/9r3i/eva.js@refs/heads/master/eva.js',
+    'js/eva.js',
     'https://cdn.jsdelivr.net/npm/sweetalert2@11',
     'js/code.min.js',
     'js/nations.js',
@@ -43,7 +43,8 @@ this.libraries={
     'https://9r3i.github.io/firebase-moduler/modules/MFirebase/MFirebase.js',
   ],
 };
-this.fnCheck=[
+/* fn check */
+const FN_CHECK=[
   'eva',
   'Code',
   'QRCode',
@@ -58,91 +59,125 @@ this.fnCheck=[
     ".write": "auth !== null ? true : false"
   }
 }
+ * if all database on firebase, then read also needs auth
  */
 
 /* config */
-this.config=typeof config==='object'&&config!==null?config:{};
+const CONFIG=typeof config==='object'&&config!==null?config:{};
 
-
-/* hosts */
-this.hosts={
-  eva     : this.config.hasOwnProperty('evaHost')
-            ?this.config.evaHost:'',
-  eva_dev : this.config.hasOwnProperty('evaDevHost')
-            ?this.config.evaDevHost:'',
-  library : 'https://cdn.jsdelivr.net/npm/@9r3i/helper@'
-            +this.version+'/',
-};
+/* */
 
 /* user information */
 this.user=null;
-this.firebase=null;
 this.eva=null;
 this.dialogPage=null;
-this.IMAGES={
-  'loader.gif':this.hosts.library+'css/images/loader.gif',
-  'nophoto.png':this.hosts.library+'css/images/nophoto.png',
-  'icon-plus.png':this.hosts.library+'css/images/icon-plus.png',
-  'icon-error.png':this.hosts.library+'css/images/icon-error.png',
-  'logo.png':this.config.hasOwnProperty('appLogo')
-    ?this.config.appLogo
-    :this.hosts.library+'css/images/logo.png',
+
+/* config setup */
+this.configSetup=function(config){
+  config=typeof config==='object'&&config!==null?config:{};
+  /* hosts */
+  this.hosts={
+    eva     : config.hasOwnProperty('evaHost')
+              ?config.evaHost:'',
+    eva_dev : config.hasOwnProperty('evaDevHost')
+              ?config.evaDevHost:'',
+    library : 'https://cdn.jsdelivr.net/npm/@9r3i/helper@'
+              +this.version+'/',
+    firebase: 'https://www.gstatic.com/firebasejs/9.6.3/',
+  };
+  this.IMAGES={
+    'loader.gif':this.hosts.library+'css/images/loader.gif',
+    'nophoto.png':this.hosts.library+'css/images/nophoto.png',
+    'icon-plus.png':this.hosts.library+'css/images/icon-plus.png',
+    'icon-error.png':this.hosts.library+'css/images/icon-error.png',
+    'logo.png':config.hasOwnProperty('appLogo')
+      ?config.appLogo
+      :this.hosts.library+'css/images/logo.png',
+  };
+  /* apps -- name detail on divisions */
+  this.apps=config.hasOwnProperty('apps')
+      &&Array.isArray(config.apps)
+      &&config.apps.indexOf('account')>=0
+    ?config.apps:['account'];
+  /* app namespace for eva api library target */
+  this.appNS=config.hasOwnProperty('appNS')
+    ?config.appNS:'helper';
+  this.appVersion=config.hasOwnProperty('appVersion')
+    ?config.appVersion:'';
+  /* app base name for client classes prefix name */
+  this.appBaseName=config.hasOwnProperty('appBaseName')
+    ?config.appBaseName:'Helper';
+  this.themeColor=config.hasOwnProperty('themeColor')
+    ?config.themeColor:'#309695';
+  /* aliases */
+  this.aliases=config.hasOwnProperty('aliases')
+      &&typeof config.aliases==='object'
+      &&config.aliases!==null
+      &&config.aliases.hasOwnProperty('app_vendor')
+    ?config.aliases
+    :{app_vendor:'Helper App'};
+  this.positions=config.hasOwnProperty('positions')
+      &&typeof config.positions==='object'
+      &&config.positions!==null
+    ?config.positions:{};
+  this.divisions=config.hasOwnProperty('divisions')
+      &&typeof config.divisions==='object'
+      &&config.divisions!==null
+      &&config.divisions.hasOwnProperty('account')
+    ?config.divisions
+    :{account:'Profile'};
+
 };
-
-/* apps -- name detail on divisions */
-this.apps=this.config.hasOwnProperty('apps')
-    &&Array.isArray(this.config.apps)
-    &&this.config.apps.indexOf('account')>=0
-  ?this.config.apps:['account'];;
-/* app namespace for eva api library target */
-this.appNS=this.config.hasOwnProperty('appNS')
-  ?this.config.appNS:'helper';
-this.appVersion=this.config.hasOwnProperty('appVersion')
-  ?this.config.appVersion:'';
-/* app base name for client classes prefix name */
-this.appBaseName=this.config.hasOwnProperty('appBaseName')
-  ?this.config.appBaseName:'Helper';
-this.themeColor=this.config.hasOwnProperty('themeColor')
-  ?this.config.themeColor:'#309695';
-/* aliases */
-this.aliases=this.config.hasOwnProperty('aliases')
-    &&typeof this.config.aliases==='object'
-    &&this.config.aliases!==null
-    &&this.config.aliases.hasOwnProperty('app_vendor')
-  ?this.config.aliases
-  :{app_vendor:'Helper App'};
-this.positions=this.config.hasOwnProperty('positions')
-    &&typeof this.config.positions==='object'
-    &&this.config.positions!==null
-  ?this.config.positions:{};
-this.divisions=this.config.hasOwnProperty('divisions')
-    &&typeof this.config.divisions==='object'
-    &&this.config.divisions!==null
-    &&this.config.divisions.hasOwnProperty('account')
-  ?this.config.divisions
-  :{account:'Profile'};
-
-
+this.configSetup(config);
+/* firebase setup */
+this.firebase=function(auto=false){
+  /* initialize firebase */
+  let fbc=CONFIG.hasOwnProperty('firebaseConfig')
+    ?CONFIG.firebaseConfig:{
+      apiKey: "AIzaSyDOAM2pxlFgj-feGalpef8G0IttI-bIWy4",
+      authDomain: "helper-62fa0.firebaseapp.com",
+      projectId: "helper-62fa0",
+      storageBucket: "helper-62fa0.firebasestorage.app",
+      messagingSenderId: "312651149644",
+      appId: "1:312651149644:web:35adabd62d2904c6cc5fe9",
+      measurementId: "G-SW6EK11CJ6",
+      databaseURL: "https://helper-62fa0-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    },
+  fbu=CONFIG.hasOwnProperty('firebaseUser')
+    ?CONFIG.firebaseUser:{
+      email:'aa.kasep@gmail.com',
+      passcode:'AaGanteng',
+    },
+  fb=new Firebase(fbc);
+  /**/
+  if(auto){
+    fb.autoLogin=async function(){
+      return await fb.login(fbu.email,fbu.passcode);
+    };
+  }
+  /**/
+  return fb;
+};
 
 /* initialize as contructor */
 this.init=function(){
   /* load libraries module */
   let module=`
-  import QrScanner from "${this.libraries.module[0]}";
+  import QrScanner from "${LIBRARIES.module[0]}";
   window.QrScanner=QrScanner;
-  import { Firebase } from "${this.libraries.module[1]}";
+  import { Firebase } from "${LIBRARIES.module[1]}";
   window.Firebase=window.Firebase||Firebase;
-  import { MFirebase } from "${this.libraries.module[2]}";
+  import { MFirebase } from "${LIBRARIES.module[2]}";
   window.MFirebase=window.MFirebase||MFirebase;
   `;
   this.loadScriptString(module,'module');
   /* load libraries style */
-  for(let style of this.libraries.style){
+  for(let style of LIBRARIES.style){
     let pre=!style.match(/^http/i)?this.hosts.library:'';
     this.loadStyleURL(pre+style);
   }
   /* load libraries script */
-  for(let script of this.libraries.script){
+  for(let script of LIBRARIES.script){
     let pre=!script.match(/^http/i)?this.hosts.library:'';
     this.loadScriptURL(pre+script);
   }
@@ -153,6 +188,16 @@ this.init=function(){
 };
 /* start the app */
 this.start=async function(app){
+  /* eva prepare */
+  let eva_host=this.production?this.hosts.eva:this.hosts.eva_dev,
+  eva_get=eva_host+'?query=helperget.eva/',
+  eva_version=await fetch(eva_get+'version').then(r=>r.text()),
+  eva_token=await fetch(eva_get+'token').then(r=>r.text()),
+  eva_config={
+    host:eva_host,
+    apiVersion:eva_version,
+    token:eva_token,
+  };
   /* check everything is ready */
   let isReady=await this.isEverythingReady();
   if(!isReady){
@@ -207,21 +252,7 @@ this.start=async function(app){
   document.body.innerHTML='';
   /* update page */
   this.updatePage();
-  /* initialize firebase */
-  this.firebase=new Firebase(this.config.firebaseConfig);
-  /**/
-  let fbUser=await this.firebase.login('aa.kasep@gmail.com','AaGanteng');
-  alert(this.likeJSON(fbUser,2));
   /* initialize eva */
-  let eva_host=this.production?this.hosts.eva:this.hosts.eva_dev,
-  eva_get=eva_host+'?query=helperget.eva/',
-  eva_version=await fetch(eva_get+'version').then(r=>r.text()),
-  eva_token=await fetch(eva_get+'token').then(r=>r.text()),
-  eva_config={
-    host:eva_host,
-    apiVersion:eva_version,
-    token:eva_token,
-  };
   this.eva=new eva(eva_config);
   /* login page */
   if(!this.isLogin()){
@@ -233,7 +264,7 @@ this.start=async function(app){
     };
     this.statusBar(this.themeColor);
     let main=app?this.loginPage()
-      :this.frontPage(this.config.frontPage);
+      :this.frontPage(CONFIG.frontPage);
     document.body.append(main);
     return false;
   }
@@ -290,7 +321,8 @@ this.start=async function(app){
   if(typeof window[appClass]==='function'&&this.apps.indexOf(appDiv)>=0){
     if(this.user.scope.indexOf(appDiv)>=0
       &&this.user.privilege>=4){
-      let appObject=new window[appClass](this);
+      let appObject=new window[appClass];
+      appObject.helper=this;
       menus=typeof appObject.menus==='function'?appObject.menus():[];
       if(typeof appObject.dashboard==='function'){
         appObject.dashboard();
@@ -1810,9 +1842,11 @@ this.dateSelection=function(config){
 this.logout=async function(){
   let yes=await this.confirmX('Logout?');
   if(!yes){return;}
+  this.loader();
+  let res=await this.request('query','delete from access where uid='
+    +this.user.id);
   this.userData(false);
   this.user=null;
-  this.loader();
   await this.sleep(500);
   this.start(true);
 };
@@ -2007,7 +2041,7 @@ this.fakeLoader=function(cb,dl,i=0){
 this.isEverythingReady=async function(){
   /* loaded variable */
   let progress=this.loadProgress||{};
-  progress.max=4+this.fnCheck.length;
+  progress.max=4+FN_CHECK.length;
   progress.value=0;
   /* document */
   let res=await this.isDocumentReady();
@@ -2035,7 +2069,7 @@ this.isEverythingReady=async function(){
   }
   progress.value++;
   /* functions check */
-  for(let fn of this.fnCheck){
+  for(let fn of FN_CHECK){
     res=await this.isFunctionReady(fn);
     if(!res){break;}
     progress.value++;
@@ -2053,7 +2087,7 @@ this.isEverythingReady=async function(){
   /* return the result */
   return res;
 };
-/* is cordova ready */
+/* is cordova ready -- 5s -- with StatusBar */
 this.isCordovaReady=async function(){
   if(!window.CORDOVA_LOADED){
     return true;
@@ -2124,7 +2158,7 @@ this.isBrowser=function(){
 };
 
 
-/* ---------- ALIASES METHODS ---------- */
+/* ---------- ALIASES METHODS -- STAND-ALONE ---------- */
 /* alias position -- require: positions */
 this.aliasPosition=function(text=''){
   let aliases=typeof this.positions==='object'&&this.positions!==null?this.positions:{};
@@ -2143,16 +2177,15 @@ this.alias=function(text=''){
 /* app name to app function -- require: appBaseName */
 this.getAppClassName=function(name=''){
   let an=name.split(/[^a-z]+/ig),
-  ar=[this.appBaseName];
+  bname=this.hasOwnProperty('appBaseName')
+    ?this.appBaseName:'',
+  ar=[bname];
   for(let d of an){
     ar.push(d.substring(0,1).toUpperCase());
     ar.push(d.substring(1).replace(/[^a-z]+/ig,''));
   }
   return ar.join('');
 };
-
-
-/* ---------- STAND-ALONE METHODS ---------- */
 
 
 /* ---------- STAND-ALONE METHODS ---------- */

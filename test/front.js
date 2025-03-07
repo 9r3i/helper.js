@@ -17,7 +17,7 @@ if(helper){
   );
   
   helper.element('p')
-    .text(`Helper version ${helper.version}`)
+    .text(`Helper version ${helper.version}\nEva version ${helper.eva.version}`)
     .appendTo(document.body);
   helper.element('pre')
     .text(helper.__uniqid)

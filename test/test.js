@@ -1,6 +1,23 @@
-test_start();
 
-async function test_start(){
+
+new App('1.2.7',false);
+
+function App(v='',l=false){
+this.version='1.0.0';
+this.init=async function(v='',local=false){
+  let url=local?'../helper.js'
+    :'https://cdn.jsdelivr.net/npm/@9r3i/helper@'+v,
+  content=document.createElement('h1'),
+  helper=document.createElement('script');
+  content.innerText='Loading...';
+  document.body.append(content);
+  helper.textContent=await fetch(url).then(r=>r.text());
+  document.head.append(helper);
+  this.start();
+  return this;
+};
+this.start=async function(){
+  /* configuration */
   let config={
     appNS:'test',
     appVersion:'v1.0.0',
@@ -17,7 +34,7 @@ async function test_start(){
       admin:'Admin',
     },
     divisions:{
-      admin:'HRD',
+      admin:'Admin',
       account:'Profile',
     },
     apps:[
@@ -39,50 +56,30 @@ async function test_start(){
       passcode:'AaGanteng',
     },
   };
+  /* ddfault body content */
   document.body.innerHTML='';
   let app=new Helper(config),
   h1=app.element('h1').appendTo(document.body);
   h1.style.textAlign='center';
   h1.html('<i class="fa fa-spinner fa-pulse"></i> Loading...<br />');
   app.loadProgress=app.element('progress').appendTo(h1);
+  await app.sleep(500);
+  /* start the app */
   //app.userData(false);
   await app.start();
   //await app.sleep(100);
   //app.alert('Helper v'+app.version);
   //await app.fakeLoaderZ();
   //app.alert('QrScanner: '+(typeof QrScanner));
-}
-
-async function init(){
-  
-/* initialize */
-const fb=new Firebase(config.firebaseConfig);
-pre(fb);
-
-/* login and logout */
-const log=await fb.login('aa.kasep@gmail.com','AaGanteng');
-//await fb.logout();
-pre(log);
-
-/* realtime database set and get */
-const post={
-  id:101,
-  title:'test posting lagi deh',
-  content:'test content lagi dan lagi',
-  time:(new Date).getTime(),
 };
-const ins=await fb.set('posts',post.id,post);
-pre(ins);
-
-const sel=await fb.get('posts','');
-pre(sel);
-
-}
+return this.init(v,l);
+};
 
 
 
-;function TestAdmin(helper){
-this.helper=helper;
+
+
+;function TestAdmin(){
 window._TestAdmin=this;
 //helper.loadStyleURL('../css/helper.css');
 this.menus=function(){
@@ -97,10 +94,12 @@ this.menus=function(){
   ];
 };
 this.dashboard=async function(){
-  let text=this.helper.likeJSON(this.helper,3),
+  let text=this.helper.likeJSON(this.helper.user,3),
   nol='',
-  post=await this.helper.firebase.get('posts',101);
-  this.helper.main.put('Dashboard','<pre style="white-space:pre-wrap;">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n'+nol+'\n\n'+this.helper.likeJSON(post)+'</pre>');
+  fb=await this.helper.firebase(),
+  post=await fb.get('posts',101);
+  this.helper.main.put('Dashboard','<pre style="white-space:pre-wrap;">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n'
+      +text+'\n\n'+this.helper.likeJSON(post)+'</pre>');
 };
 };
 
