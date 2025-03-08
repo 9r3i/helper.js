@@ -1,6 +1,6 @@
 
 
-new App('1.2.7',false);
+new App('1.2.7',true);
 
 function App(v='',l=false){
 this.version='1.0.0';
@@ -22,7 +22,7 @@ this.start=async function(){
     appNS:'test',
     appVersion:'v1.0.0',
     appBaseName:'Test',
-    appLogo:'',
+    appLogo:'icon.png',
     frontPage:'front.html',
     themeColor:'#7c1111',
     evaHost:'https://hotelbandara.com/api/eva/',
@@ -59,11 +59,15 @@ this.start=async function(){
   /* ddfault body content */
   document.body.innerHTML='';
   let app=new Helper(config),
-  h1=app.element('h1').appendTo(document.body);
+  section=app.element('div',{
+    style:'display:flex;align-items:center;justify-content:center;'
+         +'height:100vh;width:100vw;',
+  }).appendTo(document.body),
+  h1=app.element('h1').appendTo(section);
   h1.style.textAlign='center';
-  h1.html('<i class="fa fa-spinner fa-pulse"></i> Loading...<br />');
+  h1.html('<img src="'+app.IMAGES['logo.png']+'" width="120px" /><br /><i class="fa fa-spinner fa-pulse"></i> Loading...<br />');
   app.loadProgress=app.element('progress').appendTo(h1);
-  await app.sleep(500);
+  await app.sleep(1500);
   /* start the app */
   //app.userData(false);
   await app.start();

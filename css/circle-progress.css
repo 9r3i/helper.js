@@ -47,7 +47,7 @@
   transition:all 0.3s ease 0s;
   animation:circlelistening 2s infinite 0s;
 	stroke-dasharray:360 360;
-	  stroke-dashoffset:360;
+	stroke-dashoffset:360;
   
 }
 @keyframes circlelistening{

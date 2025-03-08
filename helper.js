@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:127,
+  value:128,
   writable:false,
 });
 /* the version */
@@ -183,6 +183,11 @@ this.init=function(){
   }
   /* load icon */
   this.loadIconURL(this.IMAGES['logo.png']);
+  /* logo css */
+  this.loadStyleString(`
+    .header,.menu-header
+      {background-image:url('${this.IMAGES['logo.png']}');}
+  `);
   /* return the object */
   return this;
 };
@@ -190,7 +195,7 @@ this.init=function(){
 this.start=async function(app){
   /* eva prepare */
   let eva_host=this.production?this.hosts.eva:this.hosts.eva_dev,
-  eva_get=eva_host+'?query=helperget.eva/',
+  eva_get=eva_host+'?query='+this.appNS+'get.eva/',
   eva_version=await fetch(eva_get+'version').then(r=>r.text()),
   eva_token=await fetch(eva_get+'token').then(r=>r.text()),
   eva_config={
@@ -426,7 +431,7 @@ this.qrNewOTP=async function(){
   this.QR_OAUTH_ATTEMP++;
   let id='qrcode-oauth',
   host=this.production?this.hosts.eva:this.hosts.eva_dev,
-  urlNew=host+'helper/otp/new/'+this.uniqid(),
+  urlNew=host+'?query='+this.appNS+'get.otp/'+this.uniqid(),
   body=document.getElementById(id),
   otp=await fetch(urlNew,{mode:'cors'}).then(r=>r.text());
   if(!body){return;}
@@ -458,7 +463,8 @@ this.qrCheckOTP=async function(){
   if(!body||!body.dataset.hasOwnProperty('otp')
     ||body.dataset.otp==''){return;}
   let host=this.production?this.hosts.eva:this.hosts.eva_dev,
-  urlCheck=host+this.appNS+'/otp/check/'+body.dataset.otp,
+  urlCheck=host+this.appNS+'?query='+this.appNS+'get.otp_check/'
+    +body.dataset.otp,
   res=await fetch(urlCheck,{mode:'cors'}).then(r=>r.text());
   if(res.toString().match(/^error/i)){
     return this.qrCheckOTP();
@@ -2534,6 +2540,16 @@ this.loadScriptString=function(str,type='text/javascript'){
   document.head.append(scr);
   return scr;
 };
+/* load style by string */
+this.loadStyleString=function(str){
+  let scr=document.createElement('style');
+  scr.textContent=str;
+  scr.rel='stylesheet';
+  scr.type='text/css';
+  scr.media='print,screen';
+  document.head.append(scr);
+  return scr;
+};
 /* load script by url */
 this.loadScriptURL=function(url,type='text/javascript'){
   let scr=document.createElement('script');
@@ -2547,6 +2563,7 @@ this.loadStyleURL=function(url){
   let scr=document.createElement('link');
   scr.href=url;
   scr.rel='stylesheet';
+  scr.type='text/css';
   scr.media='print,screen';
   document.head.append(scr);
   return scr;
