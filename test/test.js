@@ -1,6 +1,6 @@
 
 
-new App('1.2.7',true);
+new App('1.2.8',false);
 
 function App(v='',l=false){
 this.version='1.0.0';

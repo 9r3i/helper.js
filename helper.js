@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:128,
+  value:132,
   writable:false,
 });
 /* the version */
@@ -36,6 +36,7 @@ const LIBRARIES={
     'js/code.min.js',
     'js/nations.js',
     'js/qrcode.min.js',
+    'js/helper.admin.js',
   ],
   module:[
     'https://cdn.jsdelivr.net/npm/@9r3i/qrscanner/qr-scanner.min.js',
@@ -50,6 +51,7 @@ const FN_CHECK=[
   'QRCode',
   'Firebase',
   'MFirebase',
+  'HelperAdmin',
 ];
 /**
  * rules for realtime database
@@ -84,6 +86,8 @@ this.configSetup=function(config){
     library : 'https://cdn.jsdelivr.net/npm/@9r3i/helper@'
               +this.version+'/',
     firebase: 'https://www.gstatic.com/firebasejs/9.6.3/',
+    report  : config.hasOwnProperty('reportHost')
+              ?config.reportHost:'',
   };
   this.IMAGES={
     'loader.gif':this.hosts.library+'css/images/loader.gif',
@@ -93,6 +97,9 @@ this.configSetup=function(config){
     'logo.png':config.hasOwnProperty('appLogo')
       ?config.appLogo
       :this.hosts.library+'css/images/logo.png',
+    'wallpaper.jpg':config.hasOwnProperty('appWallpaper')
+      ?config.appWallpaper
+      :this.hosts.library+'css/images/wallpaper.jpg',
   };
   /* apps -- name detail on divisions */
   this.apps=config.hasOwnProperty('apps')
@@ -126,7 +133,19 @@ this.configSetup=function(config){
       &&config.divisions.hasOwnProperty('account')
     ?config.divisions
     :{account:'Profile'};
-
+  this.religions=[
+    'Islam',
+    'Catholic',
+    'Protestant',
+    'Hinduism',
+    'Buddhism',
+    'Shinto',
+    'Taoism',
+    'Sikhism',
+    'Judaism',
+    'Atheism',
+    'Other'
+  ];
 };
 this.configSetup(config);
 /* firebase setup */
@@ -155,6 +174,19 @@ this.firebase=function(auto=false){
       return await fb.login(fbu.email,fbu.passcode);
     };
   }
+  /**/
+  fb.getRaw=async function(t,k){
+    let mfb=this.MFirebase,
+    db=new mfb.Database(t),
+    ref=db.resource.ref(db.resource.db),
+    loc=t+'/'+k,
+    trap=db.resource.child(ref,loc);
+    return await db.resource.get(trap).then(r=>{
+      return (r.exists()?r.val():null);
+    }).catch(e=>{
+      return (null);
+    });
+  };
   /**/
   return fb;
 };
@@ -187,6 +219,8 @@ this.init=function(){
   this.loadStyleString(`
     .header,.menu-header
       {background-image:url('${this.IMAGES['logo.png']}');}
+    .login-wrapper
+      {background-image:url('${this.IMAGES['wallpaper.jpg']}');}
   `);
   /* return the object */
   return this;
