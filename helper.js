@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:132,
+  value:138,
   writable:false,
 });
 /* the version */
@@ -30,9 +30,9 @@ const LIBRARIES={
     'css/helper.css',
   ],
   script:[
+    'https://cdn.jsdelivr.net/npm/sweetalert2@11',
     'js/circle-progress.min.js',
     'js/eva.js',
-    'https://cdn.jsdelivr.net/npm/sweetalert2@11',
     'js/code.min.js',
     'js/nations.js',
     'js/qrcode.min.js',
@@ -43,6 +43,7 @@ const LIBRARIES={
     'https://9r3i.github.io/firebase-moduler/modules/Firebase.js',
     'https://9r3i.github.io/firebase-moduler/modules/MFirebase/MFirebase.js',
   ],
+  loaded:[],
 };
 /* fn check */
 const FN_CHECK=[
@@ -148,48 +149,6 @@ this.configSetup=function(config){
   ];
 };
 this.configSetup(config);
-/* firebase setup */
-this.firebase=function(auto=false){
-  /* initialize firebase */
-  let fbc=CONFIG.hasOwnProperty('firebaseConfig')
-    ?CONFIG.firebaseConfig:{
-      apiKey: "AIzaSyDOAM2pxlFgj-feGalpef8G0IttI-bIWy4",
-      authDomain: "helper-62fa0.firebaseapp.com",
-      projectId: "helper-62fa0",
-      storageBucket: "helper-62fa0.firebasestorage.app",
-      messagingSenderId: "312651149644",
-      appId: "1:312651149644:web:35adabd62d2904c6cc5fe9",
-      measurementId: "G-SW6EK11CJ6",
-      databaseURL: "https://helper-62fa0-default-rtdb.asia-southeast1.firebasedatabase.app/",
-    },
-  fbu=CONFIG.hasOwnProperty('firebaseUser')
-    ?CONFIG.firebaseUser:{
-      email:'aa.kasep@gmail.com',
-      passcode:'AaGanteng',
-    },
-  fb=new Firebase(fbc);
-  /**/
-  if(auto){
-    fb.autoLogin=async function(){
-      return await fb.login(fbu.email,fbu.passcode);
-    };
-  }
-  /**/
-  fb.getRaw=async function(t,k){
-    let mfb=this.MFirebase,
-    db=new mfb.Database(t),
-    ref=db.resource.ref(db.resource.db),
-    loc=t+'/'+k,
-    trap=db.resource.child(ref,loc);
-    return await db.resource.get(trap).then(r=>{
-      return (r.exists()?r.val():null);
-    }).catch(e=>{
-      return (null);
-    });
-  };
-  /**/
-  return fb;
-};
 
 /* initialize as contructor */
 this.init=function(){
@@ -208,11 +167,6 @@ this.init=function(){
     let pre=!style.match(/^http/i)?this.hosts.library:'';
     this.loadStyleURL(pre+style);
   }
-  /* load libraries script */
-  for(let script of LIBRARIES.script){
-    let pre=!script.match(/^http/i)?this.hosts.library:'';
-    this.loadScriptURL(pre+script);
-  }
   /* load icon */
   this.loadIconURL(this.IMAGES['logo.png']);
   /* logo css */
@@ -225,8 +179,32 @@ this.init=function(){
   /* return the object */
   return this;
 };
+/* prepare library */
+this.prepare=async function(){
+  if(!this.hasOwnProperty('loadProgress')
+    ||this.loadProgress===null
+    ||typeof this.loadProgress!=='object'){
+    return;
+  }
+  /* library prepare */
+  this.loadProgress.max=LIBRARIES.script.length;
+  this.loadProgress.value=0;
+  for(let script of LIBRARIES.script){
+    if(LIBRARIES.loaded.indexOf(script)>=0){
+      continue;
+    }
+    let pre=!script.match(/^http/i)?this.hosts.library:'',
+    str=await fetch(pre+script).then(r=>r.text());
+    this.loadScriptString(str);
+    this.loadProgress.value++;
+    LIBRARIES.loaded.push(script);
+  }
+  delete this.loadProgress;
+};
 /* start the app */
 this.start=async function(app){
+  /* prepare library */
+  await this.prepare();
   /* eva prepare */
   let eva_host=this.production?this.hosts.eva:this.hosts.eva_dev,
   eva_get=eva_host+'?query='+this.appNS+'get.eva/',
@@ -307,6 +285,8 @@ this.start=async function(app){
     document.body.append(main);
     return false;
   }
+  /* bind admin helper */
+  window[this.appBaseName+'Admin']=HelperAdmin.bind(null);
   /* load basic ui */
   this.main=this.basicUI(this.alias('app_vendor'),this.appVersion);
   document.body.append(this.main);
@@ -411,6 +391,48 @@ this.start=async function(app){
   },false);
   this.menuUIFix();
 };
+/* firebase setup */
+this.firebase=function(auto=false){
+  /* initialize firebase */
+  let fbc=CONFIG.hasOwnProperty('firebaseConfig')
+    ?CONFIG.firebaseConfig:{
+      apiKey: "AIzaSyDOAM2pxlFgj-feGalpef8G0IttI-bIWy4",
+      authDomain: "helper-62fa0.firebaseapp.com",
+      projectId: "helper-62fa0",
+      storageBucket: "helper-62fa0.firebasestorage.app",
+      messagingSenderId: "312651149644",
+      appId: "1:312651149644:web:35adabd62d2904c6cc5fe9",
+      measurementId: "G-SW6EK11CJ6",
+      databaseURL: "https://helper-62fa0-default-rtdb.asia-southeast1.firebasedatabase.app/",
+    },
+  fbu=CONFIG.hasOwnProperty('firebaseUser')
+    ?CONFIG.firebaseUser:{
+      email:'aa.kasep@gmail.com',
+      passcode:'AaGanteng',
+    },
+  fb=new Firebase(fbc);
+  /**/
+  if(auto){
+    fb.autoLogin=async function(){
+      return await fb.login(fbu.email,fbu.passcode);
+    };
+  }
+  /**/
+  fb.getRaw=async function(t,k){
+    let mfb=this.MFirebase,
+    db=new mfb.Database(t),
+    ref=db.resource.ref(db.resource.db),
+    loc=t+'/'+k,
+    trap=db.resource.child(ref,loc);
+    return await db.resource.get(trap).then(r=>{
+      return (r.exists()?r.val():null);
+    }).catch(e=>{
+      return (null);
+    });
+  };
+  /**/
+  return fb;
+};
 
 
 /* ---------- PAGES ---------- */
@@ -479,7 +501,7 @@ this.qrNewOTP=async function(){
     colorLight:"#ffffff",
     correctLevel:QRCode.CorrectLevel.H
   });
-  this.qrCheckOTP();
+  await this.qrCheckOTP();
   await this.sleep(55*1000);
   body=document.getElementById(id);
   if(!body){return;}
@@ -497,7 +519,7 @@ this.qrCheckOTP=async function(){
   if(!body||!body.dataset.hasOwnProperty('otp')
     ||body.dataset.otp==''){return;}
   let host=this.production?this.hosts.eva:this.hosts.eva_dev,
-  urlCheck=host+this.appNS+'?query='+this.appNS+'get.otp_check/'
+  urlCheck=host+'?query='+this.appNS+'get.otp_check/'
     +body.dataset.otp,
   res=await fetch(urlCheck,{mode:'cors'}).then(r=>r.text());
   if(res.toString().match(/^error/i)){
@@ -2079,18 +2101,12 @@ this.fakeLoader=function(cb,dl,i=0){
 };
 /* is everything ready -- with loader */
 this.isEverythingReady=async function(){
-  /* loaded variable */
-  let progress=this.loadProgress||{};
-  progress.max=4+FN_CHECK.length;
-  progress.value=0;
   /* document */
   let res=await this.isDocumentReady();
   if(!res){return res;}
-  progress.value++;
   /* circle progress */
   res=await this.isCircleProgressReady();
   if(!res){return res;}
-  progress.value++;
   /* open circle progress */
   let cp=new CircleProgress;
   cp.open();
@@ -2100,19 +2116,16 @@ this.isEverythingReady=async function(){
     cp.close();
     return res;
   }
-  progress.value++;
   /* cordova */
   res=await this.isCordovaReady();
   if(!res){
     cp.close();
     return res;
   }
-  progress.value++;
   /* functions check */
   for(let fn of FN_CHECK){
     res=await this.isFunctionReady(fn);
     if(!res){break;}
-    progress.value++;
   }
   if(!res){
     cp.close();
@@ -2123,7 +2136,6 @@ this.isEverythingReady=async function(){
     cp.loading(e);
   },0);
   cp.close();
-  delete this.loadProgress;
   /* return the result */
   return res;
 };

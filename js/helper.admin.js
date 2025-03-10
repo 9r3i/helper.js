@@ -220,6 +220,7 @@ this.employeeEdit=async function(id){
       privilege:4,
       scope:'account,'+this.dataset.division,
       type:'employee',
+      position:this.dataset.position,
     }),
     query='insert into user '+innerQuery,
     res=await this.helper.request('query',query);
@@ -233,6 +234,7 @@ this.employeeEdit=async function(id){
     id:id,
     name:user.name.trim().toUpperCase(),
     division:user.division,
+    position:user.position,
   });
   for(let key in user){
     let value=user[key],
@@ -418,6 +420,7 @@ this.users=async function(){
     active.innerText=user.profile_id;
     active.classList.add('user-'+(user.active=='1'?'active':'inactive'));
     active.dataset.id=user.id;
+    active.helper=this.helper;
     active.onclick=async function(){
       let yes=await this.helper.confirmX('Reset the password?'),
       npass='$2y$10$.fHBTvCSRm9k3zNL9JK2te8VNtnpjGOviguGXDeCcN7BG9POxHUea',
