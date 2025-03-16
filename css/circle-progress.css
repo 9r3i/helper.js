@@ -40,7 +40,7 @@
   color:#999;
   background-color:transparent;
   font-family:system-ui;
-  font-size:12px;
+  font-size:0.85rem;
   animation:loadtextlistening 1.4s infinite 0s;
 }
 .circle-progress-listening{
@@ -85,7 +85,7 @@ button.circle-progress-try-again{
   background-color:#37b;
   color:#fff;
   font-family:system-ui;
-  font-size:12px;
+  font-size:0.85rem;
   font-weight:bold;
   text-shadow:-1px -1px 0px #333;
   display:flex;

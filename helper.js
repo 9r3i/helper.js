@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:138,
+  value:140,
   writable:false,
 });
 /* the version */
@@ -24,10 +24,10 @@ this.debugRequest=false;
 /* helper libraries */
 const LIBRARIES={
   style:[
-    'css/circle-progress.min.css',
-    'css/font-awesome.min.css',
-    'css/code.min.css',
     'css/helper.css',
+    'css/circle-progress.min.css',
+    'css/code.min.css',
+    'css/font-awesome.min.css',
   ],
   script:[
     'https://cdn.jsdelivr.net/npm/sweetalert2@11',
@@ -50,6 +50,7 @@ const FN_CHECK=[
   'eva',
   'Code',
   'QRCode',
+  'QrScanner',
   'Firebase',
   'MFirebase',
   'HelperAdmin',
@@ -84,8 +85,10 @@ this.configSetup=function(config){
               ?config.evaHost:'',
     eva_dev : config.hasOwnProperty('evaDevHost')
               ?config.evaDevHost:'',
-    library : 'https://cdn.jsdelivr.net/npm/@9r3i/helper@'
-              +this.version+'/',
+    library : config.hasOwnProperty('libraryHost')
+              ?config.libraryHost
+              :'https://cdn.jsdelivr.net/npm/@9r3i/helper@'
+                +this.version+'/',
     firebase: 'https://www.gstatic.com/firebasejs/9.6.3/',
     report  : config.hasOwnProperty('reportHost')
               ?config.reportHost:'',
@@ -116,7 +119,7 @@ this.configSetup=function(config){
   this.appBaseName=config.hasOwnProperty('appBaseName')
     ?config.appBaseName:'Helper';
   this.themeColor=config.hasOwnProperty('themeColor')
-    ?config.themeColor:'#309695';
+    ?config.themeColor:'#333333';
   /* aliases */
   this.aliases=config.hasOwnProperty('aliases')
       &&typeof config.aliases==='object'
@@ -1803,6 +1806,9 @@ this.dialog=async function(){
     this.main.remove();
     this.remove();
     this.helper.dialogPage=null;
+    if(this.scanner&&typeof this.scanner.stop==='function'){
+      this.scanner.stop();
+    }
   };
   close.onclick=function(){
     this.close();
@@ -2241,6 +2247,31 @@ this.getAppClassName=function(name=''){
 
 
 /* ---------- STAND-ALONE METHODS ---------- */
+/* page url */
+this.pageURL=function(data,type='text/html'){
+  data=typeof data!=='string'?JSON.stringify(data):data;
+  let blob=new Blob([data],{type}),
+  url=window.URL.createObjectURL(blob);
+  return {
+    url,
+    revoke:function(){
+      window.URL.revokeObjectURL(this.url);
+    }
+  };
+};
+/* JSON download */
+this.downloadJSON=function(data,out='data'){
+  data=typeof data!=='string'?JSON.stringify(data):data;
+  out=typeof out==='string'?out:'data';
+  let blob=new Blob([data],{type:'application/json'}),
+  url=window.URL.createObjectURL(blob),
+  a=document.createElement('a');
+  a.href=url;
+  a.download=out+'.json';
+  a.click();
+  window.URL.revokeObjectURL(url);
+  return url;
+};
 /* ini object */
 this.ini=function(){
   return {
@@ -2825,6 +2856,59 @@ this.getYears=function(start=2025,length=10){
 
 
 /* ---------- CORDOVA ---------- */
+/* QRScannerPage -- require: cordova-plugin-qrscanner-11 */
+this.QRScannerPage=async function(cb,perm){
+  if(!perm&&typeof QRScanner==='object'&&QRScanner!==null){
+    QRScanner.prepare((e,s)=>{
+      if(e||!s.authorized){
+        return this.alert('Error: Has no camera access!','','error');
+      }
+      this.QRScannerPage(cb,true);
+    });
+    return;
+  }
+  cb=typeof cb==='function'?cb:function(){};
+  let dialog=await this.dialog(),
+  button=document.createElement('input'),
+  video=document.createElement('video'),
+  content=document.createElement('div');
+  content.append(video);
+  content.append(button);
+  button.type='submit';
+  button.value='Stop';
+  button.onclick=function(){
+    if(this.value=='Stop'){
+      this.scanner.stop();
+      this.value='Start';
+    }else{
+      this.scanner.start();
+      this.value='Stop';
+    }
+  };
+  dialog.blank();
+  dialog.put(content);
+  /* initiate scanner */
+  button.scanner=new QrScanner(video,async result=>{
+    button.scanner.stop();
+    dialog.close();
+    return cb(result.data);
+  },{
+    onDecodeError:async error=>{
+      return cb(false);
+    },
+    highlightScanRegion:true,
+    highlightCodeOutline:true,
+  });
+  dialog.scanner=button.scanner;
+  /* start scanning */
+  button.scanner.start();
+};
+/* qr scanner page with promise */
+this.QRScannerPageX=function(){
+  return new Promise(resolve=>{
+    this.QRScannerPage(resolve,false);
+  });
+};
 /* close app */
 this.closeApp=function(){
   if(!window.navigator.hasOwnProperty('app')
@@ -2854,7 +2938,7 @@ this.statusBar=function(hex){
   /* return always true */
   return true;
 };
-/* open url, require: cordova-plugin-inappbrowser */
+/* open url -- require: cordova-plugin-inappbrowser */
 this.openURL=function(url,target,options){
   if(window.CORDOVA_LOADED&&cordova.InAppBrowser){
     return cordova.InAppBrowser.open(url,target,options);

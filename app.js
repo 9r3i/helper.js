@@ -3,7 +3,7 @@
  */
 ;function App(config){
 /* version */
-this.version='1.1.0';
+this.version='1.1.2';
 /* production */
 this.production=false;
 /* configuration */
@@ -40,7 +40,7 @@ this.init=function(){
 this.start=async function(){
   /* load helper library */
   let url=this.config('localHelper')
-    ?'js/helper.js'
+    ?'../helper.js'
     :'https://cdn.jsdelivr.net/npm/@9r3i/helper@'
       +this.config('helperVersion'),
   help=document.createElement('script');
@@ -52,6 +52,9 @@ this.start=async function(){
   config.appVersion=config.appBaseName+' v'+config.appVersion
     +(!this.production?'-dev':'');
   this.configuration={...config,...this.configuration};
+  if(this.config('localHelper')){
+    config.libraryHost='../';
+  }
   /* start helper */
   let helper=new Helper(config);
   helper.production=this.config('helperProduction')?true:false;
@@ -93,11 +96,11 @@ this.defaultContent=function(logo='',css=''){
     'display:flex;align-items:center;justify-content:center;'
       +'height:100vh;width:100vw;'
       +'background-size:cover;background-position:center;'
-      +'background-color:#191919;'
+      +'background-color:#ffffff;'
   );
   img.src=logo;
   img.style.width='100px';
-  img.style.filter='filter:drop-shadow(3px 3px 9px #555);';
+  img.style.filter='drop-shadow(3px 3px 9px #555)';
   fa.classList.add('fa');
   fa.classList.add('fa-spinner');
   fa.classList.add('fa-pulse');
@@ -116,6 +119,7 @@ this.defaultContent=function(logo='',css=''){
   /* return object */
   return {
     main:div,
+    text,
     progress,
   };
 };
