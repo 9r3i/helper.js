@@ -9,7 +9,7 @@
 this.production=false;
 /* the version code */
 Object.defineProperty(this,'versionCode',{
-  value:140,
+  value:141,
   writable:false,
 });
 /* the version */
@@ -24,7 +24,7 @@ this.debugRequest=false;
 /* helper libraries */
 const LIBRARIES={
   style:[
-    'css/helper.css',
+    'css/helper.min.css',
     'css/circle-progress.min.css',
     'css/code.min.css',
     'css/font-awesome.min.css',
